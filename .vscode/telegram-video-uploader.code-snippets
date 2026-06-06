@@ -1,0 +1,14 @@
+{
+  "Export environment variable with Zod": {
+    "scope": "typescript",
+    "prefix": "zodenv",
+    "body": [
+      "export const $1 = zod",
+      "  .string({ error: 'Missing required \"$1\" env' })",
+      "  .trim()",
+      "  .parse(process.env.$1)",
+      "$0"
+    ],
+    "description": "Exports an environment variable that is validated using zod"
+  }
+}
