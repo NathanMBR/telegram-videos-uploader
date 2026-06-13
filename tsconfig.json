@@ -4,20 +4,15 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "esnext",
-    "lib": [
-      "esnext"
-    ],
-    "types": [
-      "node"
-    ],
+    "lib": ["esnext"],
+    "types": ["node"],
     "baseUrl": "./",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "ignoreDeprecations": "6.0",
     "sourceMap": true,
+    "inlineSources": true,
     "declaration": false,
     "declarationMap": false,
     "noUncheckedIndexedAccess": true,

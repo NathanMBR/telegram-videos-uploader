@@ -1,0 +1,205 @@
+import path from 'node:path'
+
+import * as cli from '@inquirer/prompts'
+
+import { logger, stepsLogger } from '@/config'
+import type { NewVideo } from '@/db'
+import type { Preset } from '@/domain'
+import { VideosRepository } from '@/repositories'
+import { TelegramService, VideosService } from '@/services'
+import { getMarkdownEscapedText } from '@/utils'
+
+const telegramService = new TelegramService()
+const videosService = new VideosService()
+const videosRepository = new VideosRepository()
+
+export const uploadVideos = async (preset: Preset) => {
+  const { videosDirectory } = preset
+
+  const videosFileNames = await videosService.listVideosFileNames(videosDirectory)
+  const [videosMetadata, videosMetadataError] =
+    await videosService.loadVideosMetadata(videosDirectory)
+
+  if (videosMetadataError) {
+    logger.warn(
+      `Could not load the content of the "videos.json" file. Reason: ${videosMetadataError.message}`
+    )
+
+    const shouldContinue = await cli.confirm({
+      message: 'Proceed?',
+      default: false
+    })
+
+    if (!shouldContinue) {
+      return
+    }
+  } else if (videosMetadata.length <= 0) {
+    logger.warn('File "videos.json" not found, inaccessible or empty')
+  } else if (videosFileNames.length !== videosMetadata.length) {
+    logger.warn(
+      `Amount of files in provided directory (${videosFileNames.length}) doesn't match the amount of entries in "videos.json" (${videosMetadata.length})`
+    )
+  }
+
+  if (videosFileNames.length <= 0) {
+    logger.warn(`No .mp4 files found at directory "${videosDirectory}"`)
+    return
+  }
+
+  for (const [videoFileNameIndex, videoFileName] of videosFileNames.entries()) {
+    const videoFilePath = path.resolve(videosDirectory, videoFileName)
+    const videoFileNameWithoutExtension = path.parse(videoFileName).name
+
+    const logPadLength = String(videosFileNames.length).length
+    const logCurrentStep = String(videoFileNameIndex + 1).padStart(logPadLength, '0')
+    const logFinalStep = String(videosFileNames.length).padStart(logPadLength, '0')
+
+    stepsLogger.info(`\n-----[${logCurrentStep}/${logFinalStep}]-----`)
+    stepsLogger.info(`Looking for saved video with filename "${videoFileName}"...`)
+
+    let video = await videosRepository.getByFilename(videoFileName)
+    if (video) {
+      stepsLogger.info('Found!')
+    } else {
+      stepsLogger.info('Not found. Saving into database...')
+
+      const videoMetadata = videosMetadata?.find(
+        metadata => path.parse(metadata.filename).name === videoFileNameWithoutExtension
+      )
+
+      const videoData: NewVideo = videoMetadata
+        ? {
+            title: videoMetadata.title,
+            filename: videoFileName,
+            origin: preset.origin,
+            url: videoMetadata.webpage_url,
+            availability: videosRepository.transformMetadataAvailability(
+              videoMetadata.availability
+            ),
+            publishedAt: videosRepository.transformMetadataUploadDate(videoMetadata.upload_date)
+          }
+        : {
+            title: videoFileNameWithoutExtension,
+            filename: videoFileName,
+            origin: preset.origin
+          }
+
+      video = await videosRepository.save(videoData)
+
+      stepsLogger.info('Saved!')
+    }
+
+    if (video.status === 'UPLOADED') {
+      stepsLogger.info('Video already uploaded! Skipping...\n')
+      continue
+    }
+
+    const videoFileMetadata = await videosService.getVideoFileMetadata(videoFilePath)
+
+    stepsLogger.info('Searching for cover image...')
+
+    let videoThumbnailPath: string | undefined
+    let videoCoverPath = await videosService.getVideoCoverPath(videoFilePath)
+    if (!videoCoverPath) {
+      stepsLogger.info('Cover image not found. It will be extracted from the video file itself.')
+    } else {
+      stepsLogger.info('Cover image found!')
+      stepsLogger.info('Generating thumbnail...')
+
+      videoThumbnailPath = await videosService.convertVideoCoverToThumbnail(videoCoverPath)
+
+      stepsLogger.info('Thumbnail generated!')
+    }
+
+    const videoSegmentsDirectory = videosService.getVideoSegmentsDirectory({
+      videosDirectory,
+      videoFileNameWithoutExtension
+    })
+
+    await videosService.deleteVideoSegments(videoSegmentsDirectory)
+
+    stepsLogger.info('Segmenting...')
+
+    await videosService.generateVideoSegments({
+      videoFilePath,
+      videoSegmentsDirectory,
+      ...videoFileMetadata
+    })
+
+    const videoSegmentsFileNames =
+      await videosService.listVideoSegmentsFileNames(videoSegmentsDirectory)
+
+    stepsLogger.info('Segmentation done!')
+
+    for (const [videoSegmentIndex, videoSegmentFileName] of videoSegmentsFileNames.entries()) {
+      const partCurrent = String(videoSegmentIndex + 1).padStart(2, '0')
+      const partTotal = String(videoSegmentsFileNames.length).padStart(2, '0')
+      const videoSegmentPath = path.join(videoSegmentsDirectory, videoSegmentFileName)
+
+      const postDescription = telegramService.getPostDescription({
+        baseText: preset.postDescription.baseText,
+        videoTitle: getMarkdownEscapedText(video.title),
+        videoUrl: getMarkdownEscapedText(video.url || ''),
+        channelTitle: getMarkdownEscapedText(preset.postDescription.channel.name),
+        channelUrl: getMarkdownEscapedText(preset.postDescription.channel.url),
+        availability: getMarkdownEscapedText(
+          telegramService.transformDbAvailability({
+            presetAvailabilities: preset.postDescription.availability,
+            availability: video.availability
+          })
+        ),
+        date: getMarkdownEscapedText(
+          telegramService.transformDbPublishedAt({
+            presetDateFormat: preset.postDescription.dateFormat,
+            publishedAt: video.publishedAt
+          })
+        ),
+        partCurrent,
+        partTotal
+      })
+
+      if (!videoCoverPath) {
+        stepsLogger.info(
+          `Extracting cover image for video segment ${partCurrent} of ${partTotal}...`
+        )
+
+        const videoSegmentMetadata = await videosService.getVideoFileMetadata(videoSegmentPath)
+
+        videoCoverPath = await telegramService.extractVideoCover({
+          videoSegmentPath,
+          durationInSeconds: videoSegmentMetadata.durationInSeconds
+        })
+
+        stepsLogger.info(`Extracted!`)
+        stepsLogger.info(`Generating thumbnail...`)
+
+        videoThumbnailPath = await telegramService.convertVideoCoverToThumbnail(videoCoverPath)
+
+        stepsLogger.info('Thumbnail generated!')
+      }
+
+      stepsLogger.info(`Uploading video segment ${partCurrent} of ${partTotal}...`)
+
+      await telegramService.uploadVideoToChannel({
+        apiBaseUrl: preset.telegram.apiBaseUrl,
+        botToken: preset.telegram.botToken,
+        channelId: preset.telegram.channelId,
+        videoPath: videoSegmentPath,
+        width: videoFileMetadata.width,
+        height: videoFileMetadata.height,
+        durationInSeconds: videoFileMetadata.durationInSeconds,
+        postDescription,
+        videoCoverPath,
+        videoThumbnailPath
+      })
+
+      stepsLogger.info(`Video segment uploaded!`)
+    }
+
+    await videosRepository.setUploadedStatusById(video.id)
+
+    stepsLogger.info('All video segments successfully uploaded!')
+  }
+
+  stepsLogger.info('All videos successfully uploaded!')
+}

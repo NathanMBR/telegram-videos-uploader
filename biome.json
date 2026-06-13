@@ -20,7 +20,11 @@
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noConsole": "warn"
+        "noConsole": "warn",
+        "useAwait": "warn"
+      },
+      "nursery": {
+        "noFloatingPromises": "error"
       }
     }
   },

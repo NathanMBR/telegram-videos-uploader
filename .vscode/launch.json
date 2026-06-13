@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Node.js with TypeScript",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx"],
+      "program": "${workspaceFolder}/src/index.ts",
+      "envFile": "${workspaceFolder}/.env",
+      "args": ["-p", "${workspaceFolder}/presets.json"],
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
+      "console": "integratedTerminal",
+      "sourceMaps": true,
+      "stopOnEntry": true
+    }
+  ]
+}
