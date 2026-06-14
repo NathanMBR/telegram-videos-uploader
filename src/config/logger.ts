@@ -1,11 +1,10 @@
 import pino from 'pino'
+import pinoPretty from 'pino-pretty'
 
-export const logger = pino({
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      ignore: 'time,pid,hostname'
-    }
-  }
+const stream = pinoPretty({
+  colorize: true,
+  ignore: 'time,pid,hostname',
+  sync: true
 })
+
+export const logger = pino(stream)

@@ -7,6 +7,7 @@
     "format": "biome format --write",
     "lint": "biome lint --write",
     "check": "biome check --write",
+    "migrate": "drizzle-kit migrate",
     "dev": "tsx --env-file=.env src/index.ts",
     "build": "swc src -d build --strip-leading-paths --copy-files",
     "start": "node --env-file=.env ."

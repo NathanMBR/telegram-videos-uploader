@@ -59,9 +59,10 @@ export const uploadVideos = async (preset: Preset) => {
 
     let video = await videosRepository.getByFilename(videoFileName)
     if (video) {
-      stepsLogger.info('Found!')
+      stepsLogger.info('Found!\n')
     } else {
-      stepsLogger.info('Not found. Saving into database...')
+      stepsLogger.info('Not found.\n')
+      stepsLogger.info('Saving into database...')
 
       const videoMetadata = videosMetadata?.find(
         metadata => path.parse(metadata.filename).name === videoFileNameWithoutExtension
@@ -86,7 +87,7 @@ export const uploadVideos = async (preset: Preset) => {
 
       video = await videosRepository.save(videoData)
 
-      stepsLogger.info('Saved!')
+      stepsLogger.info('Saved!\n')
     }
 
     if (video.status === 'UPLOADED') {
@@ -100,15 +101,21 @@ export const uploadVideos = async (preset: Preset) => {
 
     let videoThumbnailPath: string | undefined
     let videoCoverPath = await videosService.getVideoCoverPath(videoFilePath)
-    if (!videoCoverPath) {
-      stepsLogger.info('Cover image not found. It will be extracted from the video file itself.')
+
+    const needsToExtractCover = !videoCoverPath
+    if (needsToExtractCover) {
+      stepsLogger.info('Cover image not found. It will be extracted from the video file itself.\n')
     } else {
-      stepsLogger.info('Cover image found!')
+      if (!videoCoverPath) {
+        throw new Error('Unexpected undefined videoCoverPath')
+      }
+
+      stepsLogger.info('Cover image found!\n')
       stepsLogger.info('Generating thumbnail...')
 
       videoThumbnailPath = await videosService.convertVideoCoverToThumbnail(videoCoverPath)
 
-      stepsLogger.info('Thumbnail generated!')
+      stepsLogger.info('Thumbnail generated!\n')
     }
 
     const videoSegmentsDirectory = videosService.getVideoSegmentsDirectory({
@@ -129,7 +136,7 @@ export const uploadVideos = async (preset: Preset) => {
     const videoSegmentsFileNames =
       await videosService.listVideoSegmentsFileNames(videoSegmentsDirectory)
 
-    stepsLogger.info('Segmentation done!')
+    stepsLogger.info('Segmentation done!\n')
 
     for (const [videoSegmentIndex, videoSegmentFileName] of videoSegmentsFileNames.entries()) {
       const partCurrent = String(videoSegmentIndex + 1).padStart(2, '0')
@@ -158,7 +165,7 @@ export const uploadVideos = async (preset: Preset) => {
         partTotal
       })
 
-      if (!videoCoverPath) {
+      if (needsToExtractCover) {
         stepsLogger.info(
           `Extracting cover image for video segment ${partCurrent} of ${partTotal}...`
         )
@@ -170,12 +177,12 @@ export const uploadVideos = async (preset: Preset) => {
           durationInSeconds: videoSegmentMetadata.durationInSeconds
         })
 
-        stepsLogger.info(`Extracted!`)
+        stepsLogger.info(`Extracted!\n`)
         stepsLogger.info(`Generating thumbnail...`)
 
         videoThumbnailPath = await telegramService.convertVideoCoverToThumbnail(videoCoverPath)
 
-        stepsLogger.info('Thumbnail generated!')
+        stepsLogger.info('Thumbnail generated!\n')
       }
 
       stepsLogger.info(`Uploading video segment ${partCurrent} of ${partTotal}...`)
@@ -193,7 +200,7 @@ export const uploadVideos = async (preset: Preset) => {
         videoThumbnailPath
       })
 
-      stepsLogger.info(`Video segment uploaded!`)
+      stepsLogger.info(`Video segment uploaded!\n`)
     }
 
     await videosRepository.setUploadedStatusById(video.id)
