@@ -165,16 +165,16 @@ export const uploadVideos = async (preset: Preset) => {
         partTotal
       })
 
+      const videoSegmentFileMetadata = await videosService.getVideoFileMetadata(videoSegmentPath)
+
       if (needsToExtractCover) {
         stepsLogger.info(
           `Extracting cover image for video segment ${partCurrent} of ${partTotal}...`
         )
 
-        const videoSegmentMetadata = await videosService.getVideoFileMetadata(videoSegmentPath)
-
         videoCoverPath = await telegramService.extractVideoCover({
           videoSegmentPath,
-          durationInSeconds: videoSegmentMetadata.durationInSeconds
+          durationInSeconds: videoSegmentFileMetadata.durationInSeconds
         })
 
         stepsLogger.info(`Extracted!\n`)
@@ -192,9 +192,9 @@ export const uploadVideos = async (preset: Preset) => {
         botToken: preset.telegram.botToken,
         channelId: preset.telegram.channelId,
         videoPath: videoSegmentPath,
-        width: videoFileMetadata.width,
-        height: videoFileMetadata.height,
-        durationInSeconds: videoFileMetadata.durationInSeconds,
+        width: videoSegmentFileMetadata.width,
+        height: videoSegmentFileMetadata.height,
+        durationInSeconds: videoSegmentFileMetadata.durationInSeconds,
         postDescription,
         videoCoverPath,
         videoThumbnailPath
