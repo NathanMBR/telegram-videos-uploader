@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises'
+import path from 'node:path'
 
+import { stepsLogger } from '@/config/stepsLogger'
 import { checkPathAccessibility } from '@/utils'
 
 type Video = {
@@ -75,10 +77,13 @@ const main = async () => {
       return videoMapped
     })
 
-  const currentTimestampInMs = Date.now()
+  const ytdlpJsonPathParsed = path.parse(ytdlpJsonPath)
 
-  await fs.writeFile(`videos_${currentTimestampInMs}.json`, JSON.stringify(videos, null, 2))
+  const videosOutputPath = path.join(ytdlpJsonPathParsed.dir, `videos.json`)
+
+  await fs.writeFile(videosOutputPath, JSON.stringify(videos, null, 2))
+
+  stepsLogger.info(`Successfully generated videos json file at "${videosOutputPath}"`)
 }
 
-// biome-ignore lint/nursery/noFloatingPromises: not necessary at scripts
 main()
