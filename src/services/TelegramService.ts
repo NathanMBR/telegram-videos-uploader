@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+import { Agent, FormData, fetch } from 'undici'
+
 import { defaultVideoAvailability, type VideoAvailabilities } from '@/db'
 import {
   defaultPostDescriptionDateFormat,
@@ -206,8 +208,8 @@ export class TelegramService {
     sendVideoFormData.append('chat_id', channelId)
     sendVideoFormData.append('caption', postDescription)
     sendVideoFormData.append('parse_mode', 'MarkdownV2')
-    sendVideoFormData.append('width', width)
-    sendVideoFormData.append('height', height)
+    sendVideoFormData.append('width', String(width))
+    sendVideoFormData.append('height', String(height))
     sendVideoFormData.append('supports_streaming', 'true')
     sendVideoFormData.append('duration', String(durationInSeconds))
 
@@ -223,9 +225,19 @@ export class TelegramService {
       sendVideoFormData.append('thumbnail', videoThumbnailBlob, path.basename(videoThumbnailPath))
     }
 
+    const oneSecondInMilliseconds = 1000
+    const oneMinuteInSeconds = 60
+    const timeoutInMilliseconds = 15 * oneMinuteInSeconds * oneSecondInMilliseconds
+
+    const dispatcher = new Agent({
+      headersTimeout: timeoutInMilliseconds,
+      bodyTimeout: timeoutInMilliseconds
+    })
+
     const fetchResponse = await fetch(telegramSendVideoUrl, {
       method: 'POST',
-      body: sendVideoFormData
+      body: sendVideoFormData,
+      dispatcher
     })
 
     const jsonResponse = await fetchResponse.json()
