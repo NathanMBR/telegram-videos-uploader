@@ -47,9 +47,7 @@ const main = async (): Promise<number> => {
 
     return 0
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-    logger.fatal(errorMessage)
+    logger.fatal(error)
 
     return 1
   }
