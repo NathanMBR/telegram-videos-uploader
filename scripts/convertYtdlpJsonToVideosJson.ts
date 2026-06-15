@@ -86,4 +86,5 @@ const main = async () => {
   stepsLogger.info(`Successfully generated videos json file at "${videosOutputPath}"`)
 }
 
+// biome-ignore lint/nursery/noFloatingPromises: not necessary when running a script
 main()
