@@ -11,7 +11,7 @@ External CLI binaries **`ffmpeg` and `ffprobe` must be on `PATH`** — they are 
 ## Commands
 
 ```bash
-pnpm dev          # run from source with tsx (loads .env); pass CLI args after --, e.g. pnpm dev -- -p ./presets.json
+pnpm dev          # run from source with tsx (loads .env)
 pnpm build        # compile src -> build/ with swc (commonjs output)
 pnpm start        # run compiled build/ with node (loads .env)
 pnpm check        # biome check --write (lint + format + organize imports) — run this before committing
@@ -66,3 +66,7 @@ Optional per-directory file describing each video (title, url, availability, upl
 - Biome formatting: single quotes, no semicolons, 2-space indent, 100-col width, no trailing commas. `noFloatingPromises` is an error and `noConsole`/`useAwait` are warnings — use the `logger`/`stepsLogger` (pino), not `console`.
 - TS strict mode plus `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` — array/record access is `T | undefined`, so destructured `[first]` must be null-checked (this pattern is everywhere).
 - Enums are `as const` string-tuple arrays with an inferred union type and a `default*` constant; DB enums (`UPLOADED`, `MEMBERS_ONLY`, …) are uppercase, yt-dlp/external values lowercase, mapped in the repository/service transform methods.
+
+## Documentation
+
+There are two README files kept in sync: `README.md` (English) and `README_pt-BR.md` (Brazilian Portuguese). Each opens with a note linking to the other version. When updating user-facing docs, change both files so they stay equivalent.
