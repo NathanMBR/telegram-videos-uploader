@@ -93,10 +93,11 @@ Exemplo com comentários:
     "postDescription": {
       // (Opcional) O texto base que será publicado junto com o vídeo, que pode ser um array de strings (como abaixo) ou uma string única
       // Caso seja um array, as strings são concatenadas com quebra de linha (\n)
-      // O texto suporta MarkdownV2 (como pode ser visto na linha que começa com "Canal"), mas não é obrigatório utilizá-lo
+      // O texto suporta MarkdownV2 (como pode ser visto na linha que começa com "Título"), mas não é obrigatório utilizá-lo
       "baseText": [
-        "Título: #VIDEO_TITLE",
-        "Canal: [#CHANNEL_TITLE](#CHANNEL_URL)", // Isso faz o texto do placeholder #CHANNEL_TITLE ser clicável e direcionar para o link do placeholder #CHANNEL_URL
+        "Título: #VIDEO_TITLE", // Isso faz o texto do placeholder #VIDEO_TITLE ser clicável e direcionar para o link do placeholder #VIDEO_URL
+        "Descrição: #VIDEO_DESCRIPTION",
+        "Canal: [#CHANNEL_TITLE](#CHANNEL_URL)", // A mesma coisa do título se aplica aqui
         "Disponibilidade: #AVAILABILITY",
         "Publicado em: #DATE",
         "Parte: #PART_CURRENT de #PART_TOTAL"

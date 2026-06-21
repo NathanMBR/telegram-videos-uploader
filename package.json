@@ -4,9 +4,11 @@
   "description": "Telegram videos uploader made with Node.js and TypeScript.",
   "main": "./build/index.js",
   "scripts": {
+    "typecheck": "tsc",
     "format": "biome format --write",
     "lint": "biome lint --write",
     "check": "biome check --write",
+    "check:ci": "biome check",
     "migrate": "drizzle-kit migrate",
     "dev": "tsx --env-file=.env src/index.ts",
     "build": "swc src -d build --strip-leading-paths --copy-files",

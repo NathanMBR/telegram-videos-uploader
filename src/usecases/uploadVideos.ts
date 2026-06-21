@@ -73,6 +73,7 @@ export const uploadVideos = async (preset: Preset) => {
             title: videoMetadata.title,
             filename: videoFileName,
             origin: preset.origin,
+            description: videoMetadata.description,
             url: videoMetadata.webpage_url,
             availability: videosRepository.transformMetadataAvailability(
               videoMetadata.availability
@@ -147,6 +148,7 @@ export const uploadVideos = async (preset: Preset) => {
         baseText: preset.postDescription.baseText,
         videoTitle: getMarkdownEscapedText(video.title),
         videoUrl: getMarkdownEscapedText(video.url || ''),
+        videoDescription: getMarkdownEscapedText(video.description || ''),
         channelTitle: getMarkdownEscapedText(preset.postDescription.channel.name),
         channelUrl: getMarkdownEscapedText(preset.postDescription.channel.url),
         availability: getMarkdownEscapedText(

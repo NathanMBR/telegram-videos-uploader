@@ -20,6 +20,7 @@ export type GetPostDescriptionDTO = {
   baseText: string
   videoTitle: string
   videoUrl: string
+  videoDescription: string
   channelTitle: string
   channelUrl: string
   availability: string
@@ -115,6 +116,7 @@ export class TelegramService {
       baseText,
       videoTitle,
       videoUrl,
+      videoDescription,
       channelTitle,
       channelUrl,
       availability,
@@ -126,6 +128,7 @@ export class TelegramService {
     const postDescription = baseText
       .replaceAll('#VIDEO_TITLE', videoTitle)
       .replaceAll('#VIDEO_URL', videoUrl)
+      .replaceAll('#VIDEO_DESCRIPTION', videoDescription)
       .replaceAll('#CHANNEL_TITLE', channelTitle)
       .replaceAll('#CHANNEL_URL', channelUrl)
       .replaceAll('#AVAILABILITY', availability)

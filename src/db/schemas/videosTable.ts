@@ -34,6 +34,7 @@ export const videosTable = sqliteTable(
     title: text().notNull(),
     filename: text().notNull(),
     origin: text(),
+    description: text(),
     url: text(),
     status: text('status', { enum: videoStatuses }).notNull().default(defaultVideoStatus),
     availability: text('availability', { enum: videoAvailabilities })

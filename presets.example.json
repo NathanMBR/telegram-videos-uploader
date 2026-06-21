@@ -7,10 +7,11 @@
       "botToken": "telegram-bot-token",
       "channelId": "telegram-channel-id"
     },
-    "videosDirectory": "/videos/directory",
+    "videosDirectory": "/path/to/videos",
     "postDescription": {
       "baseText": [
-        "Title #VIDEO_TITLE",
+        "Title [#VIDEO_TITLE](#VIDEO_URL)",
+        "Description: #VIDEO_DESCRIPTION",
         "Channel: [#CHANNEL_TITLE](#CHANNEL_URL)",
         "Availability: #AVAILABILITY",
         "Published at: #DATE",
