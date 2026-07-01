@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-
+import { stepsLogger } from '@/config'
 import { type VideoFileMetadata, type VideosMetadata, videosMetadataSchema } from '@/domain'
 import { checkPathAccessibility, execFile } from '@/utils'
 
@@ -86,14 +86,29 @@ export class VideosService {
       await fs.mkdir(videoSegmentsDirectory, { recursive: true })
     }
 
-    const ffmpegCommandOutFileName = [
+    if (sizeInBytes <= maxSizePerFileInBytes) {
+      stepsLogger.info('Original file size is under upload limits; using symlink...')
+
+      const symlinkName = [videoFileNameWithoutExtension, '_01-01', videoFileExtension].join('')
+
+      const symlinkPath = path.join(videoSegmentsDirectory, symlinkName)
+
+      await fs.symlink(videoFilePath, symlinkPath, 'file')
+
+      return
+    }
+
+    const ffmpegCommandOutputFileName = [
       videoFileNameWithoutExtension,
       '_%02d-',
       numberOfFiles.toString().padStart(2, '0'),
       videoFileExtension
     ].join('')
 
-    const ffmpegCommandOutputFilePath = path.join(videoSegmentsDirectory, ffmpegCommandOutFileName)
+    const ffmpegCommandOutputFilePath = path.join(
+      videoSegmentsDirectory,
+      ffmpegCommandOutputFileName
+    )
 
     const ffmpegCommandArgs = [
       `-i`,
