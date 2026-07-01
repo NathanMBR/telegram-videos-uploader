@@ -214,6 +214,8 @@ export const uploadVideos = async (preset: Preset) => {
     await videosRepository.setUploadedStatusById(video.id)
 
     stepsLogger.info('All video segments successfully uploaded!')
+
+    await videosService.deleteVideoSegments(videoSegmentsDirectory)
   }
 
   stepsLogger.info('All videos successfully uploaded!')
