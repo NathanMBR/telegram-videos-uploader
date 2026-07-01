@@ -9,12 +9,20 @@ import { VideosRepository } from '@/repositories'
 import { TelegramService, VideosService } from '@/services'
 import { getMarkdownEscapedText } from '@/utils'
 
-const telegramService = new TelegramService()
-const videosService = new VideosService()
-const videosRepository = new VideosRepository()
-
 export const uploadVideos = async (preset: Preset) => {
   const { videosDirectory } = preset
+
+  const telegramService = new TelegramService({
+    apiBaseUrl: preset.telegram.apiBaseUrl,
+    botToken: preset.telegram.botToken
+  })
+  const videosService = new VideosService()
+  const videosRepository = new VideosRepository()
+
+  const isApiAvailable = await telegramService.runHealthCheck()
+  if (!isApiAvailable) {
+    throw new Error(`Could not connect to API at "${preset.telegram.apiBaseUrl}"`)
+  }
 
   const videosFileNames = await videosService.listVideosFileNames(videosDirectory)
   const [videosMetadata, videosMetadataError] =
@@ -190,8 +198,6 @@ export const uploadVideos = async (preset: Preset) => {
       stepsLogger.info(`Uploading video segment ${partCurrent} of ${partTotal}...`)
 
       await telegramService.uploadVideoToChannel({
-        apiBaseUrl: preset.telegram.apiBaseUrl,
-        botToken: preset.telegram.botToken,
         channelId: preset.telegram.channelId,
         videoPath: videoSegmentPath,
         width: videoSegmentFileMetadata.width,

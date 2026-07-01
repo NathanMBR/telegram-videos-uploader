@@ -40,8 +40,6 @@ export type TransformDbPublishedAtDTO = {
 }
 
 export type UploadVideoToChannelDTO = {
-  apiBaseUrl: string
-  botToken: string
   channelId: string
   videoPath: string
   width: number
@@ -52,7 +50,38 @@ export type UploadVideoToChannelDTO = {
   videoThumbnailPath?: string | undefined
 }
 
+export type TelegramServiceConstructor = {
+  apiBaseUrl: string
+  botToken: string
+}
+
 export class TelegramService {
+  constructor(private readonly settings: TelegramServiceConstructor) {}
+
+  async convertVideoCoverToThumbnail(videoCoverPath: string): Promise<string> {
+    const videoCoverPathParsed = path.parse(videoCoverPath)
+
+    const videoThumbnailPath = path.join(
+      videoCoverPathParsed.dir,
+      `${videoCoverPathParsed.name}_thumbnail.jpg`
+    )
+
+    const ffmpegCommandArgs = [
+      '-i',
+      videoCoverPath,
+      '-vf',
+      'scale=320:180:force_original_aspect_ratio=decrease,pad=320:180:(ow-iw)/2:(oh-ih)/2',
+      '-q:v',
+      '3',
+      '-y',
+      videoThumbnailPath
+    ]
+
+    await execFile('ffmpeg', ffmpegCommandArgs)
+
+    return videoThumbnailPath
+  }
+
   async extractVideoCover(dto: ExtractVideoCoverDTO): Promise<string> {
     const { videoSegmentPath, durationInSeconds } = dto
 
@@ -87,30 +116,6 @@ export class TelegramService {
     return videoCoverPath
   }
 
-  async convertVideoCoverToThumbnail(videoCoverPath: string): Promise<string> {
-    const videoCoverPathParsed = path.parse(videoCoverPath)
-
-    const videoThumbnailPath = path.join(
-      videoCoverPathParsed.dir,
-      `${videoCoverPathParsed.name}_thumbnail.jpg`
-    )
-
-    const ffmpegCommandArgs = [
-      '-i',
-      videoCoverPath,
-      '-vf',
-      'scale=320:180:force_original_aspect_ratio=decrease,pad=320:180:(ow-iw)/2:(oh-ih)/2',
-      '-q:v',
-      '3',
-      '-y',
-      videoThumbnailPath
-    ]
-
-    await execFile('ffmpeg', ffmpegCommandArgs)
-
-    return videoThumbnailPath
-  }
-
   getPostDescription(dto: GetPostDescriptionDTO): string {
     const {
       baseText,
@@ -137,6 +142,21 @@ export class TelegramService {
       .replaceAll('#PART_TOTAL', partTotal)
 
     return postDescription
+  }
+
+  async runHealthCheck(): Promise<boolean> {
+    try {
+      const telegramGetMeUrl = new URL(
+        `/bot${this.settings.botToken}/getMe`,
+        this.settings.apiBaseUrl
+      )
+
+      const fetchResponse = await fetch(telegramGetMeUrl)
+
+      return fetchResponse.ok
+    } catch {
+      return false
+    }
   }
 
   transformDbAvailability(dto: TransformDbAvailabilityDTO): string {
@@ -190,8 +210,6 @@ export class TelegramService {
 
   async uploadVideoToChannel(dto: UploadVideoToChannelDTO): Promise<void> {
     const {
-      apiBaseUrl,
-      botToken,
       channelId,
       videoPath,
       width,
@@ -202,7 +220,10 @@ export class TelegramService {
       videoThumbnailPath
     } = dto
 
-    const telegramSendVideoUrl = new URL(`/bot${botToken}/sendVideo`, apiBaseUrl)
+    const telegramSendVideoUrl = new URL(
+      `/bot${this.settings.botToken}/sendVideo`,
+      this.settings.apiBaseUrl
+    )
 
     const videoBlob = await fs.openAsBlob(videoPath, { type: 'video/mp4' })
 
