@@ -4,8 +4,17 @@ import { drizzle, type NewVideo, type Video, videosTable } from '@/db'
 import type { VideoMetadata } from '@/domain'
 
 export class VideosRepository {
-  transformMetadataUploadDate(uploadDate: string): Date {
-    return new Date(`${uploadDate}T00:00`)
+  transformMetadataUploadDate(uploadDate: string): Date | null {
+    if (!uploadDate) {
+      return null
+    }
+
+    const date = new Date(`${uploadDate}T00:00`)
+    if (Number.isNaN(date.getTime())) {
+      return null
+    }
+
+    return date
   }
 
   transformMetadataAvailability(
