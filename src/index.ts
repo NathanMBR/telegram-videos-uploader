@@ -18,7 +18,8 @@ const main = async (): Promise<number> => {
 
     const chosenPresetName = await cli.select({
       message: 'Select the preset you want:',
-      choices: presets.map(preset => preset.name)
+      choices: presets.map(preset => preset.name),
+      loop: false
     })
 
     const chosenPreset = presets.find(preset => preset.name === chosenPresetName)
