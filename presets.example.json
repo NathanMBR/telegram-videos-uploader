@@ -2,6 +2,7 @@
   {
     "name": "Presets Example",
     "origin": "origin",
+    "databaseUrl": "file:database.db",
     "telegram": {
       "apiBaseUrl": "telegram-api-base-url",
       "botToken": "telegram-bot-token",

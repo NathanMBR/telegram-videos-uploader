@@ -64,11 +64,12 @@ Tabela com as variáveis de ambiente disponíveis:
 
 | Variável | Obrigatória? |  Descrição |
 |---|---|---|
-| `DB_FILE` | **Sim** | Nome do arquivo do banco de dados SQLite no formato `file:nome-do-arquivo.db` |
 | `TELEGRAM_API_ID` | Não | ID de API do Telegram* |
 | `TELEGRAM_API_HASH` | Não | Hash de API do Telegram* |
 
 > **\*Nota:** Obrigatório se você for utilizar o servidor local da `Bot API` pelo Docker Compose.
+
+> **Nota:** A localização do banco de dados **não** é uma variável de ambiente: ela é definida por preset através da propriedade `databaseUrl` dentro do arquivo `presets.json` (veja [nesta seção](#criando-o-arquivo-presetsjson)). Caso você não pretenda utilizar o servidor local da `Bot API`, o arquivo `.env` não é necessário.
 
 ### Criando o arquivo `presets.json`
 Você também pode copiar o arquivo de exemplo [`presets.example.json`](./presets.example.json) e substituir com os valores que possui:
@@ -82,6 +83,10 @@ Exemplo com comentários:
   {
     "name": "Meu Preset", // Nome do preset, utilizado na seleção de presets
     "origin": "qualquer-coisa", // (Opcional) Identificador qualquer, útil quando você tem mais de um preset e deseja diferenciar os dados no banco de dados
+    // URL do banco de dados SQLite utilizado por este preset, no formato "file:nome-do-arquivo.db"
+    // Caminhos relativos são resolvidos a partir do diretório em que o comando for executado; também é possível utilizar um caminho absoluto ("file:/caminho/para/database.db")
+    // Cada preset pode apontar para o seu próprio arquivo de banco de dados, e o arquivo (junto de suas tabelas) é criado automaticamente caso ainda não exista
+    "databaseUrl": "file:database.db",
     "telegram": {
       // URL base da API para o upload dos vídeos
       // Caso necessário, troque para o endereço do servidor local da Bot API rodando no Docker Compose
@@ -153,7 +158,7 @@ pnpm start -p /new/path/to/presets.json
 ```
 
 ### Como funciona
-O código lê o conteúdo do arquivo `presets.json` presente na raiz do projeto para obter suas configurações. A partir daí, pede primeiramente ao usuário para selecionar um dos presets providos pelo arquivo, e depois para selecionar uma ação. Ao selecionar o upload de vídeos, lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Então, o vídeo é dividido em segmentos menores que (ou iguais a) 1.75GB de tamanho, a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
+O código lê o conteúdo do arquivo `presets.json` presente na raiz do projeto para obter suas configurações. A partir daí, pede primeiramente ao usuário para selecionar um dos presets providos pelo arquivo. Logo após a seleção, conecta-se ao banco de dados definido na propriedade `databaseUrl` do preset e aplica as migrations pendentes automaticamente (criando o arquivo do banco de dados caso ele ainda não exista), e depois pede para selecionar uma ação. Ao selecionar o upload de vídeos, lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Então, o vídeo é dividido em segmentos menores que (ou iguais a) 1.75GB de tamanho, a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
 
 ### Sobre o arquivo `videos.json`
 O arquivo `videos.json` define as informações do vídeo que serão utilizadas para a postagem do mesmo no canal do Telegram, como título, URL, dentre outras. Ele deve sempre ser salvo com esse nome, no mesmo diretório que foi informado no preset que você estiver utilizando. O formato dele é de um array de objetos contendo as seguintes propriedades:
