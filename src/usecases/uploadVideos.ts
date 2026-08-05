@@ -28,11 +28,32 @@ export const uploadVideos = async (preset: Preset) => {
   const [videosMetadata, videosMetadataError] =
     await videosService.loadVideosMetadata(videosDirectory)
 
+  if (videosFileNames.length <= 0) {
+    logger.warn(`No .mp4 files found at directory "${videosDirectory}"`)
+    return
+  }
+
+  let shouldAskProceed = false
+
   if (videosMetadataError) {
     logger.warn(
       `Could not load the content of the "videos.json" file. Reason: ${videosMetadataError.message}`
     )
 
+    shouldAskProceed = true
+  } else if (videosMetadata.length <= 0) {
+    logger.warn('File "videos.json" not found, inaccessible or empty')
+
+    shouldAskProceed = true
+  } else if (videosFileNames.length !== videosMetadata.length) {
+    logger.warn(
+      `Amount of files in provided directory (${videosFileNames.length}) doesn't match the amount of entries in "videos.json" (${videosMetadata.length})`
+    )
+
+    shouldAskProceed = true
+  }
+
+  if (shouldAskProceed) {
     const shouldContinue = await cli.confirm({
       message: 'Proceed?',
       default: false
@@ -41,17 +62,6 @@ export const uploadVideos = async (preset: Preset) => {
     if (!shouldContinue) {
       return
     }
-  } else if (videosMetadata.length <= 0) {
-    logger.warn('File "videos.json" not found, inaccessible or empty')
-  } else if (videosFileNames.length !== videosMetadata.length) {
-    logger.warn(
-      `Amount of files in provided directory (${videosFileNames.length}) doesn't match the amount of entries in "videos.json" (${videosMetadata.length})`
-    )
-  }
-
-  if (videosFileNames.length <= 0) {
-    logger.warn(`No .mp4 files found at directory "${videosDirectory}"`)
-    return
   }
 
   for (const [videoFileNameIndex, videoFileName] of videosFileNames.entries()) {

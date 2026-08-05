@@ -1,3 +1,3 @@
-export * from './drizzle'
+export * from './DrizzleConnection'
 
 export * from './schemas'

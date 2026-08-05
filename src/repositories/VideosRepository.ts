@@ -1,9 +1,11 @@
 import { eq } from 'drizzle-orm'
 
-import { drizzle, type NewVideo, type Video, videosTable } from '@/db'
+import { DrizzleConnection, type NewVideo, type Video, videosTable } from '@/db'
 import type { VideoMetadata } from '@/domain'
 
 export class VideosRepository {
+  private readonly drizzle = DrizzleConnection.instance
+
   transformMetadataUploadDate(uploadDate: string): Date | null {
     if (!uploadDate) {
       return null
@@ -34,7 +36,7 @@ export class VideosRepository {
   }
 
   async getByFilename(fileName: Video['filename']): Promise<Video | undefined> {
-    const [video] = await drizzle
+    const [video] = await this.drizzle
       .select()
       .from(videosTable)
       .where(eq(videosTable.filename, fileName))
@@ -43,7 +45,7 @@ export class VideosRepository {
   }
 
   async save(videoDto: NewVideo): Promise<Video> {
-    const [video] = await drizzle.insert(videosTable).values(videoDto).returning()
+    const [video] = await this.drizzle.insert(videosTable).values(videoDto).returning()
     if (!video) {
       throw new Error(`Unable to save Video with filename "${videoDto.filename}" in the database`)
     }
@@ -52,6 +54,6 @@ export class VideosRepository {
   }
 
   async setUploadedStatusById(id: Video['id']): Promise<void> {
-    await drizzle.update(videosTable).set({ status: 'UPLOADED' }).where(eq(videosTable.id, id))
+    await this.drizzle.update(videosTable).set({ status: 'UPLOADED' }).where(eq(videosTable.id, id))
   }
 }

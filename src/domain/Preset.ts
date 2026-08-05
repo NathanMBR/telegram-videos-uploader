@@ -34,6 +34,8 @@ export const presetSchema = zod.object(
 
     origin: zod.string({ error: getSchemaErrorMessage(errorMessageSchema, 'origin') }).nullish(),
 
+    databaseUrl: zod.string({ error: getSchemaErrorMessage(errorMessageSchema, 'databaseUrl') }),
+
     telegram: zod.object(
       {
         apiBaseUrl: zod.string({

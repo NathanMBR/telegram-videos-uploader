@@ -1,6 +1,7 @@
 import * as cli from '@inquirer/prompts'
 
 import { args, loadPresets, logger } from '@/config'
+import { DrizzleConnection } from '@/db'
 import { uploadVideos } from '@/usecases'
 
 const main = async (): Promise<number> => {
@@ -26,6 +27,9 @@ const main = async (): Promise<number> => {
     if (!chosenPreset) {
       throw new Error('Unable to pick chosen preset')
     }
+
+    DrizzleConnection.databaseUrl = chosenPreset.databaseUrl
+    await DrizzleConnection.runMigrations()
 
     const chosenAction = await cli.select({
       message: 'Select the action you want:',
