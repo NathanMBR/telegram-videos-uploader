@@ -1,2 +1,2 @@
 export * from './PrintPresetInfo'
-export * from './uploadVideos'
+export * from './UploadVideos'
