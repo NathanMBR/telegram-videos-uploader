@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-CLI tool that uploads local `.mp4` videos to a Telegram channel via the Telegram Bot API, using a bot already added to the target channel. It is interactive: it loads presets, prompts the user to pick a preset and an action (currently only "Upload videos"), then processes each video in the preset's directory.
+CLI tool that uploads local `.mp4` videos to a Telegram channel via the Telegram Bot API, using a bot already added to the target channel. It is interactive: it loads presets, prompts the user to pick a preset and an action, then runs the corresponding usecase.
 
 External CLI binaries **`ffmpeg` and `ffprobe` must be on `PATH`** — they are shelled out to (via `node:child_process` `execFile`) for probing, segmenting, cover extraction, and thumbnail generation. There is no JS fallback.
 
@@ -36,14 +36,14 @@ To run the self-hosted Telegram Bot API server (needed for large-file uploads be
 Layered, dependency flows downward. Path alias `@/*` → `src/*` (configured in both `tsconfig.json` for dev/tsx and `.swcrc` for the build). Each directory has an `index.ts` barrel; import from the barrel (`@/services`) not the file.
 
 - **`src/index.ts`** — entrypoint. Loads presets, drives the `@inquirer/prompts` menu, dispatches to a usecase. After the preset is chosen (and before the action menu) it sets `DrizzleConnection.databaseUrl` from the preset and awaits `DrizzleConnection.runMigrations()` — this is the only place the DB url is assigned. Returns an exit code; all errors bubble here and are logged via `logger.fatal`.
-- **`src/usecases/`** — orchestration. `uploadVideos.ts` is the core flow (see below). Instantiates services/repository at module scope and sequences them.
+- **`src/usecases/`** — orchestration. `uploadVideos.ts` is the core flow (see below), a plain function that instantiates services/repository at module scope and sequences them. `PrintPresetInfo.ts` is a class implementing the `Usecase` interface (`preset` field + `async execute()`); it takes the chosen preset in the constructor, prints the preset's own fields, then calls `TelegramService.getChatData`/`getSelfData` to print the live channel and bot data. New usecases should follow the class + `Usecase` shape.
 - **`src/services/`** — stateless I/O and external-process logic.
   - `VideosService` — filesystem + ffmpeg/ffprobe: list `.mp4`s, read `videos.json` metadata, probe dimensions/duration, **segment** large files, manage the `segments/` dir, find/convert cover images.
-  - `TelegramService` — builds the post caption, maps DB enums → preset display strings, extracts covers/thumbnails from segments, and uploads via `undici` `fetch` + `FormData` to `POST /bot<token>/sendVideo` (15-min timeout via a custom `Agent`).
+  - `TelegramService` — builds the post caption, maps DB enums → preset display strings, extracts covers/thumbnails from segments, and uploads via `undici` `fetch` + `FormData` to `POST /bot<token>/sendVideo` (15-min timeout via a custom `Agent`). Also reads from the Bot API: `runHealthCheck()` (boolean over `/getMe`), `getSelfData()` (`/getMe` → bot first/last name + username) and `getChatData(chatId)` (`/getChat` → channel title, type, description); both getters throw when the response is not `ok`.
 - **`src/repositories/`** — `VideosRepository`, the only place that touches the DB. Holds the client as `private readonly drizzle = DrizzleConnection.instance`, so it must not be instantiated before `DrizzleConnection.databaseUrl` is set (the getter throws when it is empty). Maps yt-dlp metadata values → DB enums.
 - **`src/db/`** — Drizzle ORM over libSQL/SQLite. `schemas/videosTable.ts` is the single table; `migrations/` is generated; `DrizzleConnection.ts` is a static-only singleton (never instantiate it) exposing `databaseUrl` (write-once from the preset; the getter throws if unset), `instance` (lazily built, rebuilt if the client was closed; the setter always throws), the `migrationsFolder`/`schemasFile` paths shared with `drizzle.config.ts`, and `runMigrations()`.
-- **`src/domain/`** — Zod schemas + inferred types. `Preset.ts` (preset file shape, with extensive defaults; `name`, `databaseUrl`, `telegram.*` and `videosDirectory` are the required fields), `VideoMetadata.ts` (the `videos.json` shape). Validation is centralized here; both `loadPresets` and `loadVideosMetadata` return a Go-style `[data, null] | [null, Error]` tuple.
-- **`src/utils/`** — `execFile` (promisified child_process), `checkPathAccessibility` (returns `'OK' | 'INEXISTENT' | 'UNACCESSIBLE'`), `getMarkdownEscapedText` (escapes Telegram MarkdownV2).
+- **`src/domain/`** — Zod schemas + inferred types. `Preset.ts` (preset file shape, with extensive defaults; `name`, `databaseUrl`, `telegram.*` and `videosDirectory` are the required fields), `VideoMetadata.ts` (the `videos.json` shape). Also holds `Usecase.ts`, the plain (non-Zod) interface every usecase class implements. Validation is centralized here; both `loadPresets` and `loadVideosMetadata` return a Go-style `[data, null] | [null, Error]` tuple.
+- **`src/utils/`** — `execFile` (promisified child_process), `checkPathAccessibility` (returns `'OK' | 'INEXISTENT' | 'UNACCESSIBLE'`), `getMarkdownEscapedText` (escapes Telegram MarkdownV2), `getSeparator` (builds `---- TEXT ----` log headers; `'TOTAL CHARS'` mode pads to a total width, `'EACH SIDE'` mode puts a fixed number of dashes on each side).
 
 ### Upload flow (`uploadVideos.ts`)
 
@@ -68,6 +68,7 @@ Optional per-directory file describing each video (title, url, availability, upl
 - Biome formatting: single quotes, no semicolons, 2-space indent, 100-col width, no trailing commas. `noFloatingPromises` is an error and `noConsole`/`useAwait` are warnings — use the `logger`/`stepsLogger` (pino), not `console`.
 - TS strict mode plus `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` — array/record access is `T | undefined`, so destructured `[first]` must be null-checked (this pattern is everywhere).
 - Enums are `as const` string-tuple arrays with an inferred union type and a `default*` constant; DB enums (`UPLOADED`, `MEMBERS_ONLY`, …) are uppercase, yt-dlp/external values lowercase, mapped in the repository/service transform methods.
+- Method parameter/return types belong to the class they serve. `TelegramService` declares them in an `export namespace TelegramService` merged with the class, so they are referenced as `TelegramService.Constructor`, `TelegramService.UploadVideoToChannelDTO`, `TelegramService.GetChatDataReturn` (the `*Return` types are the whole `Promise<…>`, unwrapped with `Awaited<…>` when annotating the value). `VideosService` still uses the older top-level `*DTO` exports — prefer the namespace form in new code.
 
 ## Documentation / example files
 

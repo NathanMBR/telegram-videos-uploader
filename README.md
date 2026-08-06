@@ -159,7 +159,13 @@ pnpm start -p /new/path/to/presets.json
 ```
 
 ### How it works
-The code reads the contents of the `presets.json` file in the project's root directory to obtain its settings. From there, it first asks the user to select one of the presets provided by the file. Right after the selection, it connects to the database defined in the preset's `databaseUrl` property and applies the pending migrations automatically (creating the database file if it doesn't exist yet), and then asks the user to select an action. When selecting the video upload, it reads the video data from the `videos.json` file inside the preset's videos directory (if it exists) to use as a reference. Then, the video is split into segments smaller than (or equal to) 1.75GB in size, the _cover image_ is converted into a _thumbnail_ if it already exists or extracted from the video itself otherwise, and the video is uploaded to the Telegram channel.
+The code reads the contents of the `presets.json` file in the project's root directory to obtain its settings. From there, it first asks the user to select one of the presets provided by the file. Right after the selection, it connects to the database defined in the preset's `databaseUrl` property and applies the pending migrations automatically (creating the database file if it doesn't exist yet), and then asks the user to select an action.
+
+The available actions are:
+
+- **Upload videos:** reads the video data from the `videos.json` file inside the preset's videos directory (if it exists) to use as a reference. Then, the video is split into segments smaller than (or equal to) 1.75GB in size, the _cover image_ is converted into a _thumbnail_ if it already exists or extracted from the video itself otherwise, and the video is uploaded to the Telegram channel.
+
+- **Check preset data:** doesn't upload anything. It prints the main settings of the chosen preset (name, origin, database, videos directory, channel name, channel URL and date format) and then queries the Telegram `Bot API` to print the data of the channel (title and description) and of the bot (name and username) that the preset actually points to. It's useful to confirm that the bot token, the channel ID and the API URL are correct before starting an upload.
 
 ### About the `videos.json` file
 The `videos.json` file defines the video information that will be used to post it to the Telegram channel, such as title, URL, among others. It must always be saved with this name, in the same directory specified in the preset you are using. Its format is an array of objects containing the following properties:
