@@ -60,7 +60,7 @@ The unit of resumability is the whole video (DB status), not the segment — a f
 
 ### `videos.json` metadata
 
-Optional per-directory file describing each video (title, url, availability, upload_date). Generate it from a yt-dlp `--dump-single-json` dump with `pnpm tsx scripts/convertYtdlpJsonToVideosJson.ts <ytdlp.json>` (writes `videos.json` next to the input). The flow runs without it but warns and falls back to using the filename as the title.
+Optional per-directory file describing each video (title, url, availability, upload_date). Generate it from a yt-dlp `--dump-single-json` dump with `./scripts/convertYtdlpJsonToVideosJson.sh <ytdlp.json>` — a bash + **`jq`** script (no Node involved) that writes `videos_<timestamp>.json` next to the input, so the result must be renamed to `videos.json` by hand. It flattens `.entries[].entries[]` when the dump groups videos into sections and reads `.entries` directly otherwise. The flow runs without the file but warns and falls back to using the filename as the title.
 
 ## Conventions
 

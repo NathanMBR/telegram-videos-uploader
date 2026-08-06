@@ -33,6 +33,7 @@ This project is capable of uploading videos to Telegram through the `Bot API`, u
 - pnpm 9 or higher
 - ffmpeg CLI
 - ffprobe CLI
+- bash and jq CLIs (only required to use the `videos.json` conversion script; see [this section](#about-the-videosjson-file))
 - A Telegram bot token + the ID of the channel where the videos will be posted (the bot must have permission to send messages)
 - A `presets.json` configuration file (see [this section](#creating-the-presetsjson-file))
 
@@ -172,21 +173,21 @@ The `videos.json` file defines the video information that will be used to post i
 | `availability` | Enum | The video availability; can be `public`, `private`, `unlisted`, `needs_auth`, `premium_only` or `subscriber_only`
 | `upload_date` | Text | The video upload date, in the `YYYY-MM-DD` format
 
-If you use the [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) tool to download videos from a YouTube channel, you can generate the `videos.json` file through it and [the `convertYtdlpJsonToVideosJson.ts` script](./scripts/convertYtdlpJsonToVideosJson.ts), located in the `scripts` directory. First, use the command below:
+If you use the [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) tool to download videos from a YouTube channel, you can generate the `videos.json` file through it and [the `convertYtdlpJsonToVideosJson.sh` script](./scripts/convertYtdlpJsonToVideosJson.sh), located in the `scripts` directory. First, use the command below:
 ```bash
 yt-dlp -J https://youtube.com/channel-link > ytdlp.json
 ```
-
-> **WARNING:** It works **ONLY** when using the channel's home link. It **DOES NOT WORK** when using the link of a specific section (only "videos" or "live", for example).
 
 > **Note:** If you need to download videos restricted to subscribers of a channel's membership system, check [this `yt-dlp` tutorial about exporting cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies). For it to work, you will need at least one account that has the subscription.
 
 After generating the temporary `ytdlp.json` file, use the conversion script mentioned above, inserting the temporary file's path in the appropriate place:
 ```bash
-pnpm exec tsx ./scripts/convertYtdlpJsonToVideosJson.ts /path/to/ytdlp.json
+./scripts/convertYtdlpJsonToVideosJson.sh /path/to/ytdlp.json
 ```
 
-The `videos.json` file will be generated in the same folder where `ytdlp.json` is saved. After that, you can delete the temporary file. If necessary, don't forget to move the `videos.json` file to the folder specified in the preset to be used within the `presets.json` file.
+The script is a bash script and depends on the [`jq`](https://jqlang.org) CLI being available on your `PATH`.
+
+The generated file will be saved in the same folder where `ytdlp.json` is, named `videos_<timestamp>.json` (the timestamp avoids overwriting a previous conversion). The script prints its full path at the end. After that, you can delete the temporary file. Don't forget to rename the generated file to `videos.json` and, if necessary, to move it to the folder specified in the preset to be used within the `presets.json` file.
 
 If you wish, it is also possible to write the `videos.json` file manually, although this is a laborious process.
 
