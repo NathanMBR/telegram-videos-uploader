@@ -7,7 +7,7 @@ import type { NewVideo } from '@/db'
 import type { Preset } from '@/domain'
 import { VideosRepository } from '@/repositories'
 import { TelegramService, VideosService } from '@/services'
-import { getMarkdownEscapedText } from '@/utils'
+import { getMarkdownEscapedText, getSeparator } from '@/utils'
 
 export const uploadVideos = async (preset: Preset) => {
   const { videosDirectory } = preset
@@ -71,8 +71,9 @@ export const uploadVideos = async (preset: Preset) => {
     const logPadLength = String(videosFileNames.length).length
     const logCurrentStep = String(videoFileNameIndex + 1).padStart(logPadLength, '0')
     const logFinalStep = String(videosFileNames.length).padStart(logPadLength, '0')
+    const logStepIndicator = `[${logCurrentStep}/${logFinalStep}]`
 
-    stepsLogger.info(`\n-----[${logCurrentStep}/${logFinalStep}]-----`)
+    stepsLogger.info(`\n${getSeparator(logStepIndicator, 5, 'EACH SIDE')}`)
     stepsLogger.info(`Looking for saved video with filename "${videoFileName}"...`)
 
     let video = await videosRepository.getByFilename(videoFileName)
