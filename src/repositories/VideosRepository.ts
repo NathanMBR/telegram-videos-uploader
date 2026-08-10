@@ -1,39 +1,9 @@
 import { eq } from 'drizzle-orm'
 
 import { DrizzleConnection, type NewVideo, type Video, videosTable } from '@/db'
-import type { VideoMetadata } from '@/domain'
 
 export class VideosRepository {
   private readonly drizzle = DrizzleConnection.instance
-
-  transformMetadataUploadDate(uploadDate: string): Date | null {
-    if (!uploadDate) {
-      return null
-    }
-
-    const date = new Date(`${uploadDate}T00:00`)
-    if (Number.isNaN(date.getTime())) {
-      return null
-    }
-
-    return date
-  }
-
-  transformMetadataAvailability(
-    availability: VideoMetadata['availability']
-  ): Video['availability'] {
-    const availabilityTransformer: Record<VideoMetadata['availability'], Video['availability']> = {
-      needs_auth: 'NEEDS_AUTH',
-      premium_only: 'PREMIUM_ONLY',
-      private: 'PRIVATE',
-      public: 'PUBLIC',
-      subscriber_only: 'MEMBERS_ONLY',
-      unlisted: 'UNLISTED'
-    }
-
-    const transformedAvailability = availabilityTransformer[availability] || 'UNKNOWN'
-    return transformedAvailability
-  }
 
   async getByFilename(fileName: Video['filename']): Promise<Video | undefined> {
     const [video] = await this.drizzle

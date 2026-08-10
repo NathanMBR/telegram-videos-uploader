@@ -1,25 +1,38 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { stepsLogger } from '@/config'
-import { type VideoFileMetadata, type VideosMetadata, videosMetadataSchema } from '@/domain'
+import type { Video } from '@/db'
+import {
+  type VideoFileMetadata,
+  type VideoMetadata,
+  type VideosMetadata,
+  videosMetadataSchema
+} from '@/domain'
 import { checkPathAccessibility, execFile } from '@/utils'
 
-type LoadVideosMetadataSuccessResult = [VideosMetadata, null]
-type LoadVideosMetadataFailureResult = [null, Error]
-export type LoadVideosMetadataResult = Promise<
-  LoadVideosMetadataSuccessResult | LoadVideosMetadataFailureResult
->
+export namespace VideosService {
+  type LoadVideosMetadataSuccessResult = [VideosMetadata, null]
+  type LoadVideosMetadataFailureResult = [null, Error]
+  export type LoadVideosMetadataResult = Promise<
+    LoadVideosMetadataSuccessResult | LoadVideosMetadataFailureResult
+  >
 
-export type GenerateVideoSegmentsDTO = {
-  videoFilePath: string
-  videoSegmentsDirectory: string
-  sizeInBytes: number
-  durationInSeconds: number
-}
+  export type GenerateVideoSegmentsDTO = {
+    videoFilePath: string
+    videoSegmentsDirectory: string
+    sizeInBytes: number
+    durationInSeconds: number
+  }
 
-export type GetVideoSegmentsDirectoryDTO = {
-  videosDirectory: string
-  videoFileNameWithoutExtension: string
+  export type GetVideoSegmentsDirectoryDTO = {
+    videosDirectory: string
+    videoFileNameWithoutExtension: string
+  }
+
+  export type SortByVideosMetadataUploadDateDTO = {
+    videosFileNames: Array<string>
+    videosMetadata: VideosMetadata | null
+  }
 }
 
 export class VideosService {
@@ -62,7 +75,7 @@ export class VideosService {
     return
   }
 
-  async generateVideoSegments(dto: GenerateVideoSegmentsDTO): Promise<void> {
+  async generateVideoSegments(dto: VideosService.GenerateVideoSegmentsDTO): Promise<void> {
     const { videoFilePath, videoSegmentsDirectory, sizeInBytes, durationInSeconds } = dto
 
     const { name: videoFileNameWithoutExtension, ext: videoFileExtension } =
@@ -207,7 +220,7 @@ export class VideosService {
     }
   }
 
-  getVideoSegmentsDirectory(dto: GetVideoSegmentsDirectoryDTO): string {
+  getVideoSegmentsDirectory(dto: VideosService.GetVideoSegmentsDirectoryDTO): string {
     const { videosDirectory, videoFileNameWithoutExtension } = dto
 
     const videoSegmentsDirectory = path.resolve(
@@ -250,7 +263,7 @@ export class VideosService {
     return segmentsFileNames
   }
 
-  async loadVideosMetadata(videosDirectory: string): Promise<LoadVideosMetadataResult> {
+  async loadVideosMetadata(videosDirectory: string): VideosService.LoadVideosMetadataResult {
     // Hard-coded "videos.json" since there is no option to customize that in the present moment
     const metadataPath = path.join(videosDirectory, 'videos.json')
 
@@ -277,5 +290,66 @@ export class VideosService {
     }
 
     return [metadataValidationResult.data, null]
+  }
+
+  sortVideosFileNamesByVideosMetadataUploadDate(
+    dto: VideosService.SortByVideosMetadataUploadDateDTO
+  ): VideosService.SortByVideosMetadataUploadDateDTO['videosFileNames'] {
+    const { videosMetadata, videosFileNames } = dto
+
+    const collator = new Intl.Collator()
+
+    if (!videosMetadata) {
+      return videosFileNames.toSorted(collator.compare)
+    }
+
+    const sortedVideosFileNames = videosFileNames.toSorted(collator.compare).toSorted((a, b) => {
+      const videoAFileNameWithoutExtension = path.parse(a).name
+      const videoBFileNameWithoutExtension = path.parse(b).name
+
+      const videoAMetadata = videosMetadata.find(
+        metadata => path.parse(metadata.filename).name === videoAFileNameWithoutExtension
+      )
+
+      const videoBMetadata = videosMetadata.find(
+        metadata => path.parse(metadata.filename).name === videoBFileNameWithoutExtension
+      )
+
+      const videoAUploadDate = this.transformMetadataUploadDate(videoAMetadata?.upload_date || '')
+      const videoBUploadDate = this.transformMetadataUploadDate(videoBMetadata?.upload_date || '')
+
+      return (videoAUploadDate?.getTime() || 0) - (videoBUploadDate?.getTime() || 0)
+    })
+
+    return sortedVideosFileNames
+  }
+
+  transformMetadataAvailability(
+    availability: VideoMetadata['availability']
+  ): Video['availability'] {
+    const availabilityTransformer: Record<VideoMetadata['availability'], Video['availability']> = {
+      needs_auth: 'NEEDS_AUTH',
+      premium_only: 'PREMIUM_ONLY',
+      private: 'PRIVATE',
+      public: 'PUBLIC',
+      subscriber_only: 'MEMBERS_ONLY',
+      unlisted: 'UNLISTED'
+    }
+
+    const transformedAvailability = availabilityTransformer[availability] || 'UNKNOWN'
+    return transformedAvailability
+  }
+
+  transformMetadataUploadDate(uploadDate: string): Date | null {
+    if (!uploadDate) {
+      return null
+    }
+
+    const date = new Date(`${uploadDate}T00:00`)
+    if (Number.isNaN(date.getTime())) {
+      return null
+    }
+
+    return date
   }
 }

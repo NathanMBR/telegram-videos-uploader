@@ -67,7 +67,12 @@ export class UploadVideos implements Usecase {
       }
     }
 
-    for (const [videoFileNameIndex, videoFileName] of videosFileNames.entries()) {
+    const sortedVideosFileNames = videosService.sortVideosFileNamesByVideosMetadataUploadDate({
+      videosFileNames,
+      videosMetadata
+    })
+
+    for (const [videoFileNameIndex, videoFileName] of sortedVideosFileNames.entries()) {
       const videoFilePath = path.resolve(videosDirectory, videoFileName)
       const videoFileNameWithoutExtension = path.parse(videoFileName).name
 
@@ -97,10 +102,8 @@ export class UploadVideos implements Usecase {
               origin: this.preset.origin,
               description: videoMetadata.description,
               url: videoMetadata.webpage_url,
-              availability: videosRepository.transformMetadataAvailability(
-                videoMetadata.availability
-              ),
-              publishedAt: videosRepository.transformMetadataUploadDate(videoMetadata.upload_date)
+              availability: videosService.transformMetadataAvailability(videoMetadata.availability),
+              publishedAt: videosService.transformMetadataUploadDate(videoMetadata.upload_date)
             }
           : {
               title: videoFileNameWithoutExtension,
@@ -183,6 +186,7 @@ export class UploadVideos implements Usecase {
           ),
           date: getMarkdownEscapedText(
             telegramService.transformDbPublishedAt({
+              presetAvailabilities: this.preset.postDescription.availability,
               presetDateFormat: this.preset.postDescription.dateFormat,
               publishedAt: video.publishedAt
             })
