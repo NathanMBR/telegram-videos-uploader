@@ -53,6 +53,7 @@ export namespace TelegramService {
   }
 
   export type TransformDbPublishedAtDTO = {
+    presetAvailabilities: PostDescriptionAvailabilities
     presetDateFormat: PostDescriptionDateFormats
     publishedAt: Date | null
   }
@@ -241,10 +242,10 @@ export class TelegramService {
   }
 
   transformDbPublishedAt(dto: TelegramService.TransformDbPublishedAtDTO): string {
-    const { presetDateFormat, publishedAt } = dto
+    const { presetAvailabilities, presetDateFormat, publishedAt } = dto
 
     if (!publishedAt) {
-      return ''
+      return presetAvailabilities.unknown
     }
 
     const year = String(publishedAt.getUTCFullYear())
