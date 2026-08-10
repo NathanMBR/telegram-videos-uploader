@@ -120,13 +120,15 @@ Exemplo com comentários:
       "dateFormat": "MM/DD/YYYY",
 
       // (Opcional) Mapeamento dos estados de disponibilidade possíveis
+      // O estado "unknown" é utilizado quando o vídeo não possui disponibilidade definida no arquivo videos.json
       "availability": {
         "private": "Privado",
         "premiumOnly": "Somente para usuários do YouTube Premium",
         "subscriberOnly": "Somente para membros do canal / subs",
         "needsAuth": "Público (requer login)",
         "unlisted": "Não-listado",
-        "public": "Público"
+        "public": "Público",
+        "unknown": "Desconhecido"
       }
     }
   }

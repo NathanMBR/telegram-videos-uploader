@@ -29,7 +29,8 @@
         "subscriberOnly": "Only for members",
         "needsAuth": "Public (requires authentication)",
         "unlisted": "Unlisted",
-        "public": "Public"
+        "public": "Public",
+        "unknown": "Unknown"
       }
     }
   }
