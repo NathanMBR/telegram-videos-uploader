@@ -106,7 +106,7 @@ export class UploadVideos implements Usecase {
               publishedAt: videosService.transformMetadataUploadDate(videoMetadata.upload_date)
             }
           : {
-              title: videoFileNameWithoutExtension,
+              title: videosService.removeYtDlpIdFromFileName(videoFileNameWithoutExtension),
               filename: videoFileName,
               origin: this.preset.origin
             }

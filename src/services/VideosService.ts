@@ -292,6 +292,16 @@ export class VideosService {
     return [metadataValidationResult.data, null]
   }
 
+  removeYtDlpIdFromFileName(fileName: string): string {
+    const ytDlpIdPattern = /\s*\[[^\]]*\](?=(?:\.[^.]+)?$)/
+
+    if (!ytDlpIdPattern.test(fileName)) {
+      return fileName
+    }
+
+    return fileName.replace(ytDlpIdPattern, '')
+  }
+
   sortVideosFileNamesByVideosMetadataUploadDate(
     dto: VideosService.SortByVideosMetadataUploadDateDTO
   ): VideosService.SortByVideosMetadataUploadDateDTO['videosFileNames'] {
