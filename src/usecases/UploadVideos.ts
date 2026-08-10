@@ -2,7 +2,7 @@ import path from 'node:path'
 
 import * as cli from '@inquirer/prompts'
 
-import { logger, stepsLogger } from '@/config'
+import { args, logger, stepsLogger } from '@/config'
 import type { NewVideo } from '@/db'
 import type { Preset, Usecase } from '@/domain'
 import { VideosRepository } from '@/repositories'
@@ -11,6 +11,10 @@ import { getMarkdownEscapedText, getSeparator } from '@/utils'
 
 export class UploadVideos implements Usecase {
   constructor(public readonly preset: Preset) {}
+
+  private printDryRunMessage() {
+    logger.warn('Dry run enabled; skipping...')
+  }
 
   async execute() {
     const { videosDirectory } = this.preset
@@ -87,8 +91,19 @@ export class UploadVideos implements Usecase {
       let video = await videosRepository.getByFilename(videoFileName)
       if (video) {
         stepsLogger.info('Found!\n')
+
+        if (args.dryRun) {
+          this.printDryRunMessage()
+          continue
+        }
       } else {
         stepsLogger.info('Not found.\n')
+
+        if (args.dryRun) {
+          this.printDryRunMessage()
+          continue
+        }
+
         stepsLogger.info('Saving into database...')
 
         const videoMetadata = videosMetadata?.find(

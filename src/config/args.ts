@@ -7,6 +7,11 @@ export const { values: args } = utils.parseArgs({
       type: 'string',
       short: 'p',
       default: path.join(process.cwd(), 'presets.json')
+    },
+    dryRun: {
+      type: 'boolean',
+      short: 'd',
+      default: false
     }
   }
 })
