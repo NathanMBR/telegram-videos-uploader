@@ -229,7 +229,7 @@ export class TelegramService {
       PRIVATE: presetAvailabilities.private,
       PUBLIC: presetAvailabilities.public,
       UNLISTED: presetAvailabilities.unlisted,
-      UNKNOWN: ''
+      UNKNOWN: presetAvailabilities.unknown
     }
 
     const defaultTransformedAvailability = availabilityTransformer[defaultVideoAvailability]

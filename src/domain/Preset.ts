@@ -19,7 +19,8 @@ export const defaultPostDescriptionAvailability = {
   subscriberOnly: 'Only for channel members',
   needsAuth: 'Public (requires login)',
   unlisted: 'Unlisted',
-  public: 'Public'
+  public: 'Public',
+  unknown: 'Unknown'
 }
 export type PostDescriptionAvailabilities = Record<
   keyof typeof defaultPostDescriptionAvailability,
@@ -155,7 +156,16 @@ export const presetSchema = zod.object(
                     'postDescription.availability.public'
                   )
                 })
-                .default(defaultPostDescriptionAvailability.public)
+                .default(defaultPostDescriptionAvailability.public),
+
+              unknown: zod
+                .string({
+                  error: getSchemaErrorMessage(
+                    errorMessageSchema,
+                    'postDescription.availability.unknown'
+                  )
+                })
+                .default(defaultPostDescriptionAvailability.unknown)
             },
             { error: getSchemaErrorMessage(errorMessageSchema, 'postDescription.availability') }
           )
