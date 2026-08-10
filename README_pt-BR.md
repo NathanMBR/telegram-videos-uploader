@@ -158,7 +158,18 @@ pnpm dev
 # Apontando para um arquivo presets.json diferente
 pnpm start --presetsPath /new/path/to/presets.json
 pnpm start -p /new/path/to/presets.json
+
+# Dry run
+pnpm start --dryRun
+pnpm start -d
 ```
+
+Tabela com as flags disponíveis:
+
+| Flag | Atalho | Tipo | Padrão | Descrição |
+|---|---|---|---|---|
+| `--presetsPath` | `-p` | Texto | `presets.json` no diretório onde o comando é rodado | Caminho do arquivo `presets.json` |
+| `--dryRun` | `-d` | Booleano | `false` | Roda a ação de upload sem persistir informações no banco de dados ou fazer o upload de vídeos |
 
 ### Como funciona
 O código lê o conteúdo do arquivo `presets.json` presente na raiz do projeto para obter suas configurações. A partir daí, pede primeiramente ao usuário para selecionar um dos presets providos pelo arquivo. Logo após a seleção, conecta-se ao banco de dados definido na propriedade `databaseUrl` do preset e aplica as migrations pendentes automaticamente (criando o arquivo do banco de dados caso ele ainda não exista), e depois pede para selecionar uma ação.
@@ -168,6 +179,8 @@ As ações disponíveis são:
 - **Upload de vídeos:** lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Então, o vídeo é dividido em segmentos menores que (ou iguais a) 1.75GB de tamanho, a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
 
 - **Checagem dos dados do preset:** não faz nenhum upload. Imprime as principais configurações do preset escolhido (nome, origem, banco de dados, diretório de vídeos, nome do canal, URL do canal e formato de data) e depois consulta a `Bot API` do Telegram para imprimir os dados do canal (título e descrição) e do bot (nome e nome de usuário) para os quais o preset realmente aponta. É útil para confirmar que o token do bot, o ID do canal e a URL da API estão corretos antes de iniciar um upload.
+
+Quando a flag `--dryRun` (`-d`) é informada, a ação de upload não persiste dados no banco de dados nem faz o upload de nenhum vídeo.
 
 ### Sobre o arquivo `videos.json`
 O arquivo `videos.json` define as informações do vídeo que serão utilizadas para a postagem do mesmo no canal do Telegram, como título, URL, dentre outras. Ele deve sempre ser salvo com esse nome, no mesmo diretório que foi informado no preset que você estiver utilizando. O formato dele é de um array de objetos contendo as seguintes propriedades:

@@ -30,6 +30,7 @@ To run the self-hosted Telegram Bot API server (needed for large-file uploads be
 
 - `.env` — `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` (both only used by `compose.yml`). See `.env.example`. `DB_FILE` is no longer read by the app; it survives only in `drizzle.config.ts` for the `drizzle-kit` CLI.
 - `presets.json` (gitignored; see `presets.example.json`) — the main runtime config, including each preset's `databaseUrl`. Override its path with `-p/--presetsPath`.
+- CLI flags — parsed once in `src/config/args.ts` (`node:util` `parseArgs`) and read through the `args` object exported by the `@/config` barrel: `-p/--presetsPath` (string, defaults to `presets.json` in the cwd) and `-d/--dryRun` (boolean, default `false`).
 
 ## Architecture
 
@@ -50,7 +51,7 @@ Layered, dependency flows downward. Path alias `@/*` → `src/*` (configured in 
 Before the loop, the usecase bails out if the directory has no `.mp4`s, then runs its `videos.json` sanity checks (unreadable file, missing/empty file, count mismatch against the `.mp4`s). Each failed check only logs a warning and flips a `shouldAskProceed` flag; a single `Proceed?` confirmation (defaulting to no) is asked afterwards, so the user is never prompted more than once.
 
 For each `.mp4` in `preset.videosDirectory`:
-1. Look up the video by filename in the DB; if absent, insert it (enriched from a matching `videos.json` entry when present, matched by filename-without-extension). Skip immediately if its status is already `UPLOADED`.
+1. Look up the video by filename in the DB; if absent, insert it (enriched from a matching `videos.json` entry when present, matched by filename-without-extension). Skip immediately if its status is already `UPLOADED`. Under `args.dryRun` the iteration stops right after the lookup (logging whether the video was found), so nothing is inserted, segmented or uploaded — the `videos.json` checks and the `Proceed?` confirmation still run.
 2. Probe metadata, locate or extract a cover image, generate a thumbnail.
 3. **Segment** the file so each part is ≤ 1.75 GB (`generateVideoSegments` uses `ffmpeg -c copy -f segment`, splitting by computed duration). Segments go to `<videosDirectory>/segments/<name>/`, wiped and regenerated each run.
 4. For each segment: build the caption from `postDescription.baseText` (placeholders like `#VIDEO_TITLE`, `#PART_CURRENT`, `#AVAILABILITY` are substituted; all values MarkdownV2-escaped), then upload to the channel. Covers are extracted per-segment only when the source had no cover file.
