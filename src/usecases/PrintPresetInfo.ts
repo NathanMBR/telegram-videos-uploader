@@ -12,6 +12,11 @@ export class PrintPresetInfo implements Usecase {
       botToken: this.preset.telegram.botToken
     })
 
+    const isApiAvailable = await telegramService.runHealthCheck()
+    if (!isApiAvailable) {
+      throw new Error(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
+    }
+
     const telegramChatData = await telegramService.getChatData(this.preset.telegram.channelId)
     const telegramBotSelfData = await telegramService.getSelfData()
 
