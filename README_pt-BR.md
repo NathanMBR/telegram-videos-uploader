@@ -180,6 +180,8 @@ As ações disponíveis são:
 
 - **Checagem dos dados do preset:** não faz nenhum upload. Imprime as principais configurações do preset escolhido (nome, origem, banco de dados, diretório de vídeos, nome do canal, URL do canal e formato de data) e depois consulta a `Bot API` do Telegram para imprimir os dados do canal (título e descrição) e do bot (nome e nome de usuário) para os quais o preset realmente aponta. É útil para confirmar que o token do bot, o ID do canal e a URL da API estão corretos antes de iniciar um upload.
 
+- **Deletar vídeo:** exibe uma lista pesquisável dos vídeos já registrados pela ferramenta — a busca filtra por nome de arquivo, título e descrição — e deleta o selecionado após uma confirmação. Responder "não" à confirmação cancela a operação e nada é deletado.
+
 Quando a flag `--dryRun` (`-d`) é informada, a ação de upload não persiste dados no banco de dados nem faz o upload de nenhum vídeo.
 
 ### Sobre o arquivo `videos.json`
