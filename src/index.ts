@@ -20,6 +20,7 @@ const main = async (): Promise<number> => {
     const chosenPresetName = await cli.select({
       message: 'Select the preset you want:',
       choices: presets.map(preset => preset.name),
+      pageSize: 15,
       loop: false
     })
 
@@ -61,6 +62,10 @@ const main = async (): Promise<number> => {
 
     return 0
   } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'ExitPromptError') {
+      return 0
+    }
+
     logger.fatal(error)
 
     return 1
