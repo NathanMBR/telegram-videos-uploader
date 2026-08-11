@@ -2,7 +2,7 @@ import * as cli from '@inquirer/prompts'
 
 import { args, loadPresets, logger } from '@/config'
 import { DrizzleConnection } from '@/db'
-import { PrintPresetInfo, UploadVideos } from '@/usecases'
+import { DeleteVideo, PrintPresetInfo, UploadVideos } from '@/usecases'
 
 const main = async (): Promise<number> => {
   try {
@@ -43,6 +43,11 @@ const main = async (): Promise<number> => {
         {
           name: 'Check preset data',
           value: 'check-preset-data'
+        },
+
+        {
+          name: 'Delete video',
+          value: 'delete-video'
         }
       ]
     })
@@ -54,6 +59,10 @@ const main = async (): Promise<number> => {
 
       case 'check-preset-data':
         await new PrintPresetInfo(chosenPreset).execute()
+        break
+
+      case 'delete-video':
+        await new DeleteVideo(chosenPreset).execute()
         break
 
       default:
