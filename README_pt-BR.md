@@ -199,6 +199,8 @@ Caso você utilize a ferramenta [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) par
 yt-dlp -J https://youtube.com/channel-link > ytdlp.json
 ```
 
+O dump pode ser de um canal inteiro, de uma aba específica do canal (como `/videos` ou `/streams`) ou de um único vídeo — o script detecta qual dos três formatos o dump possui e converte todos eles.
+
 > **Nota:** Caso precise baixar vídeos restritos a assinantes do sistema de membros de um canal, verifique [este tutorial do `yt-dlp` sobre exportação de cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies). Para funcionar, você precisará ter ao menos uma conta que possui a assinatura.
 
 Após gerar o arquivo temporário `ytdlp.json`, utilize o script de conversão mencionado acima, inserindo o caminho do arquivo temporário no lugar devido:
@@ -206,9 +208,14 @@ Após gerar o arquivo temporário `ytdlp.json`, utilize o script de conversão m
 ./scripts/convertYtdlpJsonToVideosJson.sh /caminho/para/ytdlp.json
 ```
 
+Informe a flag `-r` para escrever o resultado diretamente como `videos.json`, sem o sufixo de timestamp. Isso dispensa a etapa de renomeação descrita abaixo, mas sobrescreve qualquer `videos.json` que já exista naquela pasta:
+```bash
+./scripts/convertYtdlpJsonToVideosJson.sh -r /caminho/para/ytdlp.json
+```
+
 O script é um script em bash e depende da CLI do [`jq`](https://jqlang.org) estar disponível no seu `PATH`.
 
-O arquivo gerado será salvo na mesma pasta em que `ytdlp.json` está, com o nome `videos_<timestamp>.json` (o timestamp evita sobrescrever uma conversão anterior). O script imprime o caminho completo dele ao final. Após isso, você pode deletar o arquivo temporário. Não esqueça de renomear o arquivo gerado para `videos.json` e, caso necessário, de movê-lo para a pasta especificada no preset a ser utilizado dentro do arquivo `presets.json`.
+O arquivo gerado será salvo na mesma pasta em que `ytdlp.json` está, com o nome `videos_<timestamp>.json` (o timestamp evita sobrescrever uma conversão anterior) — ou `videos.json`, caso a flag `-r` seja utilizada. O script imprime o caminho completo dele ao final. Após isso, você pode deletar o arquivo temporário. Caso não tenha utilizado a flag `-r`, não esqueça de renomear o arquivo gerado para `videos.json` e, caso necessário, de movê-lo para a pasta especificada no preset a ser utilizado dentro do arquivo `presets.json`.
 
 Caso deseje, também é possível escrever manualmente o arquivo `videos.json`, embora isso seja um processo trabalhoso.
 

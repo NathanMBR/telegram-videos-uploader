@@ -199,6 +199,8 @@ If you use the [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) tool to download vid
 yt-dlp -J https://youtube.com/channel-link > ytdlp.json
 ```
 
+The dump may be of an entire channel, of a single channel tab (such as `/videos` or `/streams`) or of a single video — the script detects which of the three shapes the dump has and converts all of them.
+
 > **Note:** If you need to download videos restricted to subscribers of a channel's membership system, check [this `yt-dlp` tutorial about exporting cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies). For it to work, you will need at least one account that has the subscription.
 
 After generating the temporary `ytdlp.json` file, use the conversion script mentioned above, inserting the temporary file's path in the appropriate place:
@@ -206,9 +208,14 @@ After generating the temporary `ytdlp.json` file, use the conversion script ment
 ./scripts/convertYtdlpJsonToVideosJson.sh /path/to/ytdlp.json
 ```
 
+Pass the `-r` flag to write the result directly as `videos.json`, without the timestamp suffix. This skips the renaming step described below, but overwrites any `videos.json` already present in that folder:
+```bash
+./scripts/convertYtdlpJsonToVideosJson.sh -r /path/to/ytdlp.json
+```
+
 The script is a bash script and depends on the [`jq`](https://jqlang.org) CLI being available on your `PATH`.
 
-The generated file will be saved in the same folder where `ytdlp.json` is, named `videos_<timestamp>.json` (the timestamp avoids overwriting a previous conversion). The script prints its full path at the end. After that, you can delete the temporary file. Don't forget to rename the generated file to `videos.json` and, if necessary, to move it to the folder specified in the preset to be used within the `presets.json` file.
+The generated file will be saved in the same folder where `ytdlp.json` is, named `videos_<timestamp>.json` (the timestamp avoids overwriting a previous conversion) — or `videos.json` when `-r` is used. The script prints its full path at the end. After that, you can delete the temporary file. If you didn't use the `-r` flag, don't forget to rename the generated file to `videos.json` and, if necessary, to move it to the folder specified in the preset to be used within the `presets.json` file.
 
 If you wish, it is also possible to write the `videos.json` file manually, although this is a laborious process.
 

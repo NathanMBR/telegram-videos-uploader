@@ -61,7 +61,7 @@ The unit of resumability is the whole video (DB status), not the segment — a f
 
 ### `videos.json` metadata
 
-Optional per-directory file describing each video (title, url, availability, upload_date). Generate it from a yt-dlp `--dump-single-json` dump with `./scripts/convertYtdlpJsonToVideosJson.sh <ytdlp.json>` — a bash + **`jq`** script (no Node involved) that writes `videos_<timestamp>.json` next to the input, so the result must be renamed to `videos.json` by hand. It flattens `.entries[].entries[]` when the dump groups videos into sections and reads `.entries` directly otherwise. The flow runs without the file but warns and falls back to using the filename as the title.
+Optional per-directory file describing each video (title, url, availability, upload_date). Generate it from a yt-dlp `--dump-single-json` dump with `./scripts/convertYtdlpJsonToVideosJson.sh [-r] <ytdlp.json>` — a bash + **`jq`** script (no Node involved) that writes `videos_<timestamp>.json` next to the input, so the result must be renamed to `videos.json` by hand; the `-r` flag (short form only, off by default) writes `videos.json` directly instead, skipping the rename but overwriting any existing file. Anything else starting with `-`, or a second input path, is rejected with an error. It detects three dump shapes: an entire channel (`.entries[]` themselves have `entries` → flattened with `.entries | map(.entries[])`), a single tab (`.entries` are already videos) and a single video (the root object itself, wrapped as `[.]`). The flow runs without the file but warns and falls back to using the filename as the title.
 
 ## Conventions
 
