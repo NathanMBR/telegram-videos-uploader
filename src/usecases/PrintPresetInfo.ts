@@ -1,25 +1,30 @@
 import { stepsLogger } from '@/config'
-import type { Preset, Usecase } from '@/domain'
+import { type Preset, Usecase } from '@/domain'
 import { TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
-export class PrintPresetInfo implements Usecase {
-  constructor(public readonly preset: Preset) {}
+export class PrintPresetInfo extends Usecase {
+  public readonly telegramService: TelegramService
+
+  constructor(public readonly preset: Preset) {
+    super()
+
+    this.telegramService = new TelegramService({
+      apiBaseUrl: preset.telegram.apiBaseUrl,
+      botToken: preset.telegram.botToken
+    })
+  }
 
   async execute() {
-    const telegramService = new TelegramService({
-      apiBaseUrl: this.preset.telegram.apiBaseUrl,
-      botToken: this.preset.telegram.botToken
-    })
-
-    const isApiAvailable = await telegramService.runHealthCheck()
+    const isApiAvailable = await this.telegramService.runHealthCheck()
     if (!isApiAvailable) {
       throw new Error(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
     }
 
-    const telegramChatData = await telegramService.getChatData(this.preset.telegram.channelId)
-    const telegramBotSelfData = await telegramService.getSelfData()
+    const telegramChatData = await this.telegramService.getChatData(this.preset.telegram.channelId)
+    const telegramBotSelfData = await this.telegramService.getSelfData()
 
+    // Preset info
     stepsLogger.info(getSeparator('PRESET'))
     stepsLogger.info(`Name: ${this.preset.name}`)
     stepsLogger.info(`Origin: ${this.preset.origin}`)
@@ -29,6 +34,7 @@ export class PrintPresetInfo implements Usecase {
     stepsLogger.info(`Channel url: ${this.preset.postDescription.channel.url}`)
     stepsLogger.info(`Date format: ${this.preset.postDescription.dateFormat}`)
 
+    // Telegram info
     stepsLogger.info(`\n${getSeparator('TELEGRAM')}`)
     stepsLogger.info(`Channel title: ${telegramChatData.title}`)
 

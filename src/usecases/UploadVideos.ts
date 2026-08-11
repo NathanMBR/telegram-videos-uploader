@@ -4,36 +4,39 @@ import * as cli from '@inquirer/prompts'
 
 import { args, logger, stepsLogger } from '@/config'
 import type { NewVideo } from '@/db'
-import type { Preset, Usecase } from '@/domain'
+import { type Preset, Usecase } from '@/domain'
 import { VideosRepository } from '@/repositories'
 import { TelegramService, VideosService } from '@/services'
 import { getMarkdownEscapedText, getSeparator } from '@/utils'
 
-export class UploadVideos implements Usecase {
-  constructor(public readonly preset: Preset) {}
+export class UploadVideos extends Usecase {
+  public readonly telegramService: TelegramService
+  public readonly videosService: VideosService
+  public readonly videosRepository: VideosRepository
 
-  private printDryRunMessage() {
-    logger.warn('Dry run enabled; skipping...')
+  constructor(public readonly preset: Preset) {
+    super()
+
+    this.telegramService = new TelegramService({
+      apiBaseUrl: preset.telegram.apiBaseUrl,
+      botToken: preset.telegram.botToken
+    })
+
+    this.videosService = new VideosService()
+    this.videosRepository = new VideosRepository()
   }
 
   async execute() {
     const { videosDirectory } = this.preset
 
-    const telegramService = new TelegramService({
-      apiBaseUrl: this.preset.telegram.apiBaseUrl,
-      botToken: this.preset.telegram.botToken
-    })
-    const videosService = new VideosService()
-    const videosRepository = new VideosRepository()
-
-    const isApiAvailable = await telegramService.runHealthCheck()
+    const isApiAvailable = await this.telegramService.runHealthCheck()
     if (!isApiAvailable) {
       throw new Error(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
     }
 
-    const videosFileNames = await videosService.listVideosFileNames(videosDirectory)
+    const videosFileNames = await this.videosService.listVideosFileNames(videosDirectory)
     const [videosMetadata, videosMetadataError] =
-      await videosService.loadVideosMetadata(videosDirectory)
+      await this.videosService.loadVideosMetadata(videosDirectory)
 
     if (videosFileNames.length <= 0) {
       logger.warn(`No .mp4 files found at directory "${videosDirectory}"`)
@@ -71,7 +74,7 @@ export class UploadVideos implements Usecase {
       }
     }
 
-    const sortedVideosFileNames = videosService.sortVideosFileNamesByVideosMetadataUploadDate({
+    const sortedVideosFileNames = this.videosService.sortVideosFileNamesByVideosMetadataUploadDate({
       videosFileNames,
       videosMetadata
     })
@@ -88,7 +91,7 @@ export class UploadVideos implements Usecase {
       stepsLogger.info(`\n${getSeparator(logStepIndicator, 5, 'EACH SIDE')}`)
       stepsLogger.info(`Looking for saved video with filename "${videoFileName}"...`)
 
-      let video = await videosRepository.getByFilename(videoFileName)
+      let video = await this.videosRepository.getByFilename(videoFileName)
       if (video) {
         stepsLogger.info('Found!\n')
 
@@ -117,16 +120,18 @@ export class UploadVideos implements Usecase {
               origin: this.preset.origin,
               description: videoMetadata.description,
               url: videoMetadata.webpage_url,
-              availability: videosService.transformMetadataAvailability(videoMetadata.availability),
-              publishedAt: videosService.transformMetadataUploadDate(videoMetadata.upload_date)
+              availability: this.videosService.transformMetadataAvailability(
+                videoMetadata.availability
+              ),
+              publishedAt: this.videosService.transformMetadataUploadDate(videoMetadata.upload_date)
             }
           : {
-              title: videosService.removeYtDlpIdFromFileName(videoFileNameWithoutExtension),
+              title: this.videosService.removeYtDlpIdFromFileName(videoFileNameWithoutExtension),
               filename: videoFileName,
               origin: this.preset.origin
             }
 
-        video = await videosRepository.save(videoData)
+        video = await this.videosRepository.save(videoData)
 
         stepsLogger.info('Saved!\n')
       }
@@ -136,12 +141,12 @@ export class UploadVideos implements Usecase {
         continue
       }
 
-      const videoFileMetadata = await videosService.getVideoFileMetadata(videoFilePath)
+      const videoFileMetadata = await this.videosService.getVideoFileMetadata(videoFilePath)
 
       stepsLogger.info('Searching for cover image...')
 
       let videoThumbnailPath: string | undefined
-      let videoCoverPath = await videosService.getVideoCoverPath(videoFilePath)
+      let videoCoverPath = await this.videosService.getVideoCoverPath(videoFilePath)
 
       const needsToExtractCover = !videoCoverPath
       if (needsToExtractCover) {
@@ -156,28 +161,28 @@ export class UploadVideos implements Usecase {
         stepsLogger.info('Cover image found!\n')
         stepsLogger.info('Generating thumbnail...')
 
-        videoThumbnailPath = await videosService.convertVideoCoverToThumbnail(videoCoverPath)
+        videoThumbnailPath = await this.videosService.convertVideoCoverToThumbnail(videoCoverPath)
 
         stepsLogger.info('Thumbnail generated!\n')
       }
 
-      const videoSegmentsDirectory = videosService.getVideoSegmentsDirectory({
+      const videoSegmentsDirectory = this.videosService.getVideoSegmentsDirectory({
         videosDirectory,
         videoFileNameWithoutExtension
       })
 
-      await videosService.deleteVideoSegments(videoSegmentsDirectory)
+      await this.videosService.deleteVideoSegments(videoSegmentsDirectory)
 
       stepsLogger.info('Segmenting...')
 
-      await videosService.generateVideoSegments({
+      await this.videosService.generateVideoSegments({
         videoFilePath,
         videoSegmentsDirectory,
         ...videoFileMetadata
       })
 
       const videoSegmentsFileNames =
-        await videosService.listVideoSegmentsFileNames(videoSegmentsDirectory)
+        await this.videosService.listVideoSegmentsFileNames(videoSegmentsDirectory)
 
       stepsLogger.info('Segmentation done!\n')
 
@@ -186,7 +191,7 @@ export class UploadVideos implements Usecase {
         const partTotal = String(videoSegmentsFileNames.length).padStart(2, '0')
         const videoSegmentPath = path.join(videoSegmentsDirectory, videoSegmentFileName)
 
-        const postDescription = telegramService.getPostDescription({
+        const postDescription = this.telegramService.getPostDescription({
           baseText: this.preset.postDescription.baseText,
           videoTitle: getMarkdownEscapedText(video.title),
           videoUrl: getMarkdownEscapedText(video.url || ''),
@@ -194,13 +199,13 @@ export class UploadVideos implements Usecase {
           channelTitle: getMarkdownEscapedText(this.preset.postDescription.channel.name),
           channelUrl: getMarkdownEscapedText(this.preset.postDescription.channel.url),
           availability: getMarkdownEscapedText(
-            telegramService.transformDbAvailability({
+            this.telegramService.transformDbAvailability({
               presetAvailabilities: this.preset.postDescription.availability,
               availability: video.availability
             })
           ),
           date: getMarkdownEscapedText(
-            telegramService.transformDbPublishedAt({
+            this.telegramService.transformDbPublishedAt({
               presetAvailabilities: this.preset.postDescription.availability,
               presetDateFormat: this.preset.postDescription.dateFormat,
               publishedAt: video.publishedAt
@@ -210,14 +215,15 @@ export class UploadVideos implements Usecase {
           partTotal
         })
 
-        const videoSegmentFileMetadata = await videosService.getVideoFileMetadata(videoSegmentPath)
+        const videoSegmentFileMetadata =
+          await this.videosService.getVideoFileMetadata(videoSegmentPath)
 
         if (needsToExtractCover) {
           stepsLogger.info(
             `Extracting cover image for video segment ${partCurrent} of ${partTotal}...`
           )
 
-          videoCoverPath = await telegramService.extractVideoCover({
+          videoCoverPath = await this.telegramService.extractVideoCover({
             videoSegmentPath,
             durationInSeconds: videoSegmentFileMetadata.durationInSeconds
           })
@@ -225,14 +231,15 @@ export class UploadVideos implements Usecase {
           stepsLogger.info(`Extracted!\n`)
           stepsLogger.info(`Generating thumbnail...`)
 
-          videoThumbnailPath = await telegramService.convertVideoCoverToThumbnail(videoCoverPath)
+          videoThumbnailPath =
+            await this.telegramService.convertVideoCoverToThumbnail(videoCoverPath)
 
           stepsLogger.info('Thumbnail generated!\n')
         }
 
         stepsLogger.info(`Uploading video segment ${partCurrent} of ${partTotal}...`)
 
-        await telegramService.uploadVideoToChannel({
+        await this.telegramService.uploadVideoToChannel({
           channelId: this.preset.telegram.channelId,
           videoPath: videoSegmentPath,
           width: videoSegmentFileMetadata.width,
@@ -246,11 +253,11 @@ export class UploadVideos implements Usecase {
         stepsLogger.info(`Video segment uploaded!\n`)
       }
 
-      await videosRepository.setUploadedStatusById(video.id)
+      await this.videosRepository.setUploadedStatusById(video.id)
 
       stepsLogger.info('All video segments successfully uploaded!')
 
-      await videosService.deleteVideoSegments(videoSegmentsDirectory)
+      await this.videosService.deleteVideoSegments(videoSegmentsDirectory)
     }
 
     stepsLogger.info('All videos successfully uploaded!')

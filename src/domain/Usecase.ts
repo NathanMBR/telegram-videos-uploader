@@ -1,7 +1,12 @@
+import { logger } from '@/config'
 import type { Preset } from './Preset'
 
-export interface Usecase {
-  preset: Preset
+export abstract class Usecase {
+  public abstract readonly preset: Preset
 
-  execute(): Promise<void>
+  public printDryRunMessage() {
+    logger.warn('Dry run enabled; skipping...')
+  }
+
+  public abstract execute(): Promise<void>
 }
