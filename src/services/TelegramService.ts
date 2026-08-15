@@ -73,7 +73,7 @@ export namespace TelegramService {
 
   export type UploadVideoToChannelReturn = Promise<{
     messageId: number
-    uploadedAt: number
+    uploadedAt: Date
   }>
 }
 
@@ -344,9 +344,14 @@ export class TelegramService {
       throw new Error(JSON.stringify(sendVideoResponse, null, 2))
     }
 
+    const uploadedAt = new Date(sendVideoResponse.result.date * 1_000)
+    if (Number.isNaN(uploadedAt.getTime())) {
+      throw new Error('Invalid date returned from Telegram post')
+    }
+
     return {
       messageId: sendVideoResponse.result.message_id,
-      uploadedAt: sendVideoResponse.result.date
+      uploadedAt
     }
   }
 }

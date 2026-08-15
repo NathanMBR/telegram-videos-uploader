@@ -5,14 +5,16 @@ import * as cli from '@inquirer/prompts'
 import { args, logger, stepsLogger } from '@/config'
 import type { Video } from '@/db'
 import { type Preset, Usecase } from '@/domain'
-import { VideosRepository } from '@/repositories'
+import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import { TelegramService, VideosService } from '@/services'
 import { getMarkdownEscapedText, getSeparator } from '@/utils'
 
 export class UploadVideos extends Usecase {
   public readonly telegramService: TelegramService
   public readonly videosService: VideosService
+
   public readonly videosRepository: VideosRepository
+  public readonly videoUploadsRepository: VideoUploadsRepository
 
   constructor(public readonly preset: Preset) {
     super()
@@ -24,6 +26,7 @@ export class UploadVideos extends Usecase {
 
     this.videosService = new VideosService()
     this.videosRepository = new VideosRepository()
+    this.videoUploadsRepository = new VideoUploadsRepository()
   }
 
   async execute() {
@@ -187,8 +190,10 @@ export class UploadVideos extends Usecase {
       stepsLogger.info('Segmentation done!\n')
 
       for (const [videoSegmentIndex, videoSegmentFileName] of videoSegmentsFileNames.entries()) {
-        const partCurrent = String(videoSegmentIndex + 1).padStart(2, '0')
-        const partTotal = String(videoSegmentsFileNames.length).padStart(2, '0')
+        const partCurrent = videoSegmentIndex + 1
+
+        const partCurrentString = String(partCurrent).padStart(2, '0')
+        const partTotalString = String(videoSegmentsFileNames.length).padStart(2, '0')
         const videoSegmentPath = path.join(videoSegmentsDirectory, videoSegmentFileName)
 
         const postDescription = this.telegramService.getPostDescription({
@@ -211,8 +216,8 @@ export class UploadVideos extends Usecase {
               publishedAt: video.publishedAt
             })
           ),
-          partCurrent,
-          partTotal
+          partCurrent: partCurrentString,
+          partTotal: partTotalString
         })
 
         const videoSegmentFileMetadata =
@@ -220,7 +225,7 @@ export class UploadVideos extends Usecase {
 
         if (needsToExtractCover) {
           stepsLogger.info(
-            `Extracting cover image for video segment ${partCurrent} of ${partTotal}...`
+            `Extracting cover image for video segment ${partCurrentString} of ${partTotalString}...`
           )
 
           videoCoverPath = await this.telegramService.extractVideoCover({
@@ -237,9 +242,9 @@ export class UploadVideos extends Usecase {
           stepsLogger.info('Thumbnail generated!\n')
         }
 
-        stepsLogger.info(`Uploading video segment ${partCurrent} of ${partTotal}...`)
+        stepsLogger.info(`Uploading video segment ${partCurrentString} of ${partTotalString}...`)
 
-        await this.telegramService.uploadVideoToChannel({
+        const telegramPost = await this.telegramService.uploadVideoToChannel({
           channelId: this.preset.telegram.channelId,
           videoPath: videoSegmentPath,
           width: videoSegmentFileMetadata.width,
@@ -248,6 +253,13 @@ export class UploadVideos extends Usecase {
           postDescription,
           videoCoverPath,
           videoThumbnailPath
+        })
+
+        await this.videoUploadsRepository.save({
+          telegramPostId: telegramPost.messageId,
+          uploadedAt: telegramPost.uploadedAt,
+          videoId: video.id,
+          part: partCurrent
         })
 
         stepsLogger.info(`Video segment uploaded!\n`)
