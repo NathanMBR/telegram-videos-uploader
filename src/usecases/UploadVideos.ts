@@ -3,7 +3,7 @@ import path from 'node:path'
 import * as cli from '@inquirer/prompts'
 
 import { args, logger, stepsLogger } from '@/config'
-import type { NewVideo } from '@/db'
+import type { Video } from '@/db'
 import { type Preset, Usecase } from '@/domain'
 import { VideosRepository } from '@/repositories'
 import { TelegramService, VideosService } from '@/services'
@@ -113,7 +113,7 @@ export class UploadVideos extends Usecase {
           metadata => path.parse(metadata.filename).name === videoFileNameWithoutExtension
         )
 
-        const videoData: NewVideo = videoMetadata
+        const videoData: Video.New = videoMetadata
           ? {
               title: videoMetadata.title,
               filename: videoFileName,

@@ -1,6 +1,8 @@
 import { type InferInsertModel, type InferSelectModel, sql } from 'drizzle-orm'
 import { check, int, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
+import { unixepoch } from './core'
+
 export const videoAvailabilities = [
   'UNKNOWN',
   'PUBLIC',
@@ -21,15 +23,15 @@ export type VideoStatuses = (typeof videoStatuses)[number]
 const defaultVideoStatus = 'STORED_LOCALLY' satisfies VideoStatuses
 export const statusCheck = sql.raw(`(${videoStatuses.map(status => `'${status}'`).join(', ')})`)
 
-const unixepoch = sql`(unixepoch() * 1000)`
-
 export const videosTable = sqliteTable(
   'videos',
   {
     id: int().primaryKey({ autoIncrement: true }),
     createdAt: int('createdAt', { mode: 'timestamp_ms' }).notNull().default(unixepoch),
-    updatedAt: int('updatedAt', { mode: 'timestamp_ms' }).notNull().default(unixepoch),
-    deletedAt: int('deletedAt', { mode: 'timestamp_ms' }),
+    updatedAt: int('updatedAt', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(unixepoch)
+      .$onUpdate(() => new Date()),
 
     title: text().notNull(),
     filename: text().notNull(),
@@ -50,5 +52,7 @@ export const videosTable = sqliteTable(
   ]
 )
 
-export type NewVideo = InferInsertModel<typeof videosTable>
 export type Video = InferSelectModel<typeof videosTable>
+export namespace Video {
+  export type New = InferInsertModel<typeof videosTable>
+}

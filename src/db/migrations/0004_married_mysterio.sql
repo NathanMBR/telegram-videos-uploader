@@ -1,0 +1,1 @@
+ALTER TABLE `videoUploads` RENAME COLUMN "partIndex" TO "part";
