@@ -1,20 +1,23 @@
-import { asc, eq, like, or } from 'drizzle-orm'
+import { and, asc, eq, like, or } from 'drizzle-orm'
 
 import { DrizzleConnection, type Video, videosTable } from '@/db'
 
 export class VideosRepository {
   private readonly drizzle = DrizzleConnection.instance
 
-  async getAll(search: string = ''): Promise<Array<Video>> {
+  async getAll(search: string = '', origin?: string | null): Promise<Array<Video>> {
     const videos = await this.drizzle
       .select()
       .from(videosTable)
       .where(
         search
-          ? or(
-              like(videosTable.filename, `%${search}%`),
-              like(videosTable.title, `%${search}%`),
-              like(videosTable.description, `%${search}%`)
+          ? and(
+              or(
+                like(videosTable.filename, `%${search}%`),
+                like(videosTable.title, `%${search}%`),
+                like(videosTable.description, `%${search}%`)
+              ),
+              origin ? eq(videosTable.origin, origin) : undefined
             )
           : undefined
       )
