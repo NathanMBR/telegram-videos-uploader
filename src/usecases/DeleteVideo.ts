@@ -17,7 +17,7 @@ export class DeleteVideo extends Usecase {
     const selectedVideo = await cli.search({
       message: 'Select the video to remove:',
       source: async input => {
-        const videos = await this.videosRepository.getAll(input || '')
+        const videos = await this.videosRepository.getAll(input || '', this.preset.origin)
 
         const options = videos.map(video => ({ name: video.title, value: video }))
 
