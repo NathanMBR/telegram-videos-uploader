@@ -109,6 +109,35 @@ export class TelegramService {
     return videoThumbnailPath
   }
 
+  async deleteMessage(dto: { channelId: string; messageId: number }): Promise<void> {
+    const deleteMessageUrl = new URL(
+      `/bot${this.settings.botToken}/deleteMessage`,
+      this.settings.apiBaseUrl
+    )
+
+    const deleteMessageBody = {
+      chat_id: dto.channelId,
+      message_id: dto.messageId
+    }
+
+    const deleteMessageFetchResponse = await fetch(deleteMessageUrl, {
+      method: 'POST',
+      body: JSON.stringify(deleteMessageBody),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const deleteMessageResponse =
+      (await deleteMessageFetchResponse.json()) as TelegramAPI.DeleteMessageResponse
+
+    if (!deleteMessageResponse.ok) {
+      throw new Error(
+        `Telegram error while deleting Telegram message with ID ${dto.messageId}: ${deleteMessageResponse.description}`
+      )
+    }
+  }
+
   async deleteMessages(dto: TelegramService.DeleteMessagesDTO): Promise<void> {
     const deleteMessagesUrl = new URL(
       `/bot${this.settings.botToken}/deleteMessages`,
@@ -117,27 +146,24 @@ export class TelegramService {
 
     const deleteVideoBody = {
       chat_id: dto.channelId,
-      message_id: dto.messagesIds
+      message_ids: dto.messagesIds
     }
 
     const deleteMessagesFetchResponse = await fetch(deleteMessagesUrl, {
       method: 'POST',
-      body: JSON.stringify(deleteVideoBody)
+      body: JSON.stringify(deleteVideoBody),
+      headers: {
+        'Content-Type': 'application/json'
+      }
     })
-
-    const deleteMessagesError = new Error(
-      `Unknown error while deleting Telegram messages with IDs: ${dto.messagesIds.join(' ')}`
-    )
-
-    if (!deleteMessagesFetchResponse.ok) {
-      throw deleteMessagesError
-    }
 
     const deleteMessagesResponse =
       (await deleteMessagesFetchResponse.json()) as TelegramAPI.DeleteMessagesResponse
 
     if (!deleteMessagesResponse.ok) {
-      throw deleteMessagesError
+      throw new Error(
+        `Telegram error while deleting Telegram messages with IDs: ${dto.messagesIds.join(' ')} --> ${deleteMessagesResponse.description}`
+      )
     }
   }
 
