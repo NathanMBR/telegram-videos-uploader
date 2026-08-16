@@ -3,7 +3,7 @@ import { type Preset, Usecase } from '@/domain'
 import { TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
-export class PrintPresetInfo extends Usecase {
+export class PrintPresetInfoUsecase extends Usecase {
   public readonly telegramService: TelegramService
 
   constructor(public readonly preset: Preset) {

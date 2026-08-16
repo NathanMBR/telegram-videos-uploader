@@ -2,7 +2,7 @@ import * as cli from '@inquirer/prompts'
 
 import { args, loadPresets, logger } from '@/config'
 import { DrizzleConnection } from '@/db'
-import { DeleteVideo, PrintPresetInfo, UploadVideos } from '@/usecases'
+import { DeleteVideoUsecase, PrintPresetInfoUsecase, UploadVideosUsecase } from '@/usecases'
 
 const main = async (): Promise<number> => {
   try {
@@ -53,15 +53,15 @@ const main = async (): Promise<number> => {
 
     switch (chosenAction) {
       case 'upload-videos':
-        await new UploadVideos(chosenPreset).execute()
+        await new UploadVideosUsecase(chosenPreset).execute()
         break
 
       case 'check-preset-data':
-        await new PrintPresetInfo(chosenPreset).execute()
+        await new PrintPresetInfoUsecase(chosenPreset).execute()
         break
 
       case 'delete-video':
-        await new DeleteVideo(chosenPreset).execute()
+        await new DeleteVideoUsecase(chosenPreset).execute()
         break
 
       default:

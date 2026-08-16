@@ -5,7 +5,7 @@ import { type Preset, Usecase } from '@/domain'
 import { VideosRepository } from '@/repositories'
 import { TelegramService } from '@/services'
 
-export class DeleteVideo extends Usecase {
+export class DeleteVideoUsecase extends Usecase {
   public readonly videosRepository: VideosRepository
   public readonly telegramService: TelegramService
 

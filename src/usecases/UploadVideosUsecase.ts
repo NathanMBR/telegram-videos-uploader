@@ -9,7 +9,7 @@ import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import { TelegramService, VideosService } from '@/services'
 import { getMarkdownEscapedText, getSeparator } from '@/utils'
 
-export class UploadVideos extends Usecase {
+export class UploadVideosUsecase extends Usecase {
   public readonly telegramService: TelegramService
   public readonly videosService: VideosService
 
