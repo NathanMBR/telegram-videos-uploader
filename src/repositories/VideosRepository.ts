@@ -10,16 +10,17 @@ export class VideosRepository {
       .select()
       .from(videosTable)
       .where(
-        search
-          ? and(
-              or(
+        and(
+          search
+            ? or(
                 like(videosTable.filename, `%${search}%`),
                 like(videosTable.title, `%${search}%`),
                 like(videosTable.description, `%${search}%`)
-              ),
-              origin ? eq(videosTable.origin, origin) : undefined
-            )
-          : undefined
+              )
+            : undefined,
+
+          origin ? eq(videosTable.origin, origin) : undefined
+        )
       )
       .orderBy(asc(videosTable.title))
 
