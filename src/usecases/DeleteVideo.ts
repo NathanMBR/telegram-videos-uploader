@@ -3,14 +3,20 @@ import * as cli from '@inquirer/prompts'
 import { args, stepsLogger } from '@/config'
 import { type Preset, Usecase } from '@/domain'
 import { VideosRepository } from '@/repositories'
+import { TelegramService } from '@/services'
 
 export class DeleteVideo extends Usecase {
   public readonly videosRepository: VideosRepository
+  public readonly telegramService: TelegramService
 
   constructor(public readonly preset: Preset) {
     super()
 
     this.videosRepository = new VideosRepository()
+    this.telegramService = new TelegramService({
+      apiBaseUrl: preset.telegram.apiBaseUrl,
+      botToken: preset.telegram.botToken
+    })
   }
 
   public async execute() {
@@ -32,11 +38,18 @@ export class DeleteVideo extends Usecase {
       return
     }
 
-    if (!args.dryRun) {
-      await this.videosRepository.deleteFromId(selectedVideo.id)
-    } else {
+    if (args.dryRun) {
       this.printDryRunMessage()
+      return
     }
+
+    await this.telegramService.deleteMessages({
+      channelId: this.preset.telegram.channelId,
+      messagesIds: [selectedVideo.id]
+    })
+
+    await this.videosRepository.deleteFromId(selectedVideo.id)
+
     stepsLogger.info('Successfully deleted!')
   }
 }

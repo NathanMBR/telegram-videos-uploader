@@ -19,6 +19,11 @@ export namespace TelegramService {
     botToken: string
   }
 
+  export type DeleteMessagesDTO = {
+    channelId: string
+    messagesIds: Array<number>
+  }
+
   export type ExtractVideoCoverDTO = {
     videoSegmentPath: string
     durationInSeconds: number
@@ -102,6 +107,38 @@ export class TelegramService {
     await execFile('ffmpeg', ffmpegCommandArgs)
 
     return videoThumbnailPath
+  }
+
+  async deleteMessages(dto: TelegramService.DeleteMessagesDTO): Promise<void> {
+    const deleteMessagesUrl = new URL(
+      `/bot${this.settings.botToken}/deleteMessages`,
+      this.settings.apiBaseUrl
+    )
+
+    const deleteVideoBody = {
+      chat_id: dto.channelId,
+      message_id: dto.messagesIds
+    }
+
+    const deleteMessagesFetchResponse = await fetch(deleteMessagesUrl, {
+      method: 'POST',
+      body: JSON.stringify(deleteVideoBody)
+    })
+
+    const deleteMessagesError = new Error(
+      `Unknown error while deleting Telegram messages with IDs: ${dto.messagesIds.join(' ')}`
+    )
+
+    if (!deleteMessagesFetchResponse.ok) {
+      throw deleteMessagesError
+    }
+
+    const deleteMessagesResponse =
+      (await deleteMessagesFetchResponse.json()) as TelegramAPI.DeleteMessagesResponse
+
+    if (!deleteMessagesResponse.ok) {
+      throw deleteMessagesError
+    }
   }
 
   async extractVideoCover(dto: TelegramService.ExtractVideoCoverDTO): Promise<string> {

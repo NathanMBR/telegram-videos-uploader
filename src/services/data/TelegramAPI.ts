@@ -149,4 +149,7 @@ export namespace TelegramAPI {
       height: number
     }
   }
+
+  // Response of /deleteMessages
+  export type DeleteMessagesResponse = Response<boolean>
 }
