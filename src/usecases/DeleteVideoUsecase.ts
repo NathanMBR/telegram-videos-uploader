@@ -1,13 +1,18 @@
-import * as cli from '@inquirer/prompts'
-
 import { args, stepsLogger } from '@/config'
 import { type Preset, Usecase } from '@/domain'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
-import { TelegramService } from '@/services'
+import {
+  type CLIAutocompleteContract,
+  type CLIConfirmContract,
+  InquirerCLIService,
+  TelegramService
+} from '@/services'
 
 export class DeleteVideoUsecase extends Usecase {
   private readonly videosRepository: VideosRepository
   private readonly videoUploadsRepository: VideoUploadsRepository
+
+  private readonly cliService: CLIAutocompleteContract & CLIConfirmContract
   private readonly telegramService: TelegramService
 
   constructor(public readonly preset: Preset) {
@@ -16,6 +21,7 @@ export class DeleteVideoUsecase extends Usecase {
     this.videosRepository = new VideosRepository()
     this.videoUploadsRepository = new VideoUploadsRepository()
 
+    this.cliService = new InquirerCLIService()
     this.telegramService = new TelegramService({
       apiBaseUrl: preset.telegram.apiBaseUrl,
       botToken: preset.telegram.botToken
@@ -23,18 +29,21 @@ export class DeleteVideoUsecase extends Usecase {
   }
 
   public async execute() {
-    const selectedVideo = await cli.search({
+    const selectedVideo = await this.cliService.autocomplete({
       message: 'Select the video to remove:',
-      source: async input => {
+      getOptions: async input => {
         const videos = await this.videosRepository.getAll(input || '', this.preset.origin)
 
-        const options = videos.map(video => ({ name: video.title, value: video }))
+        const options = videos.map(video => ({
+          label: video.title,
+          value: video
+        }))
 
         return options
       }
     })
 
-    const deleteConfirmation = await cli.confirm({
+    const deleteConfirmation = await this.cliService.confirm({
       message: 'Are you sure you want to delete?',
       default: false
     })

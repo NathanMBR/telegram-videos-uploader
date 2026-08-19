@@ -1,17 +1,21 @@
 import path from 'node:path'
 
-import * as cli from '@inquirer/prompts'
-
 import { args, logger, stepsLogger } from '@/config'
 import type { Video } from '@/db'
 import { type Preset, Usecase } from '@/domain'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
-import { TelegramService, VideosService } from '@/services'
+import {
+  type CLIConfirmContract,
+  InquirerCLIService,
+  TelegramService,
+  VideosService
+} from '@/services'
 import { getMarkdownEscapedText, getSeparator } from '@/utils'
 
 export class UploadVideosUsecase extends Usecase {
   public readonly telegramService: TelegramService
   public readonly videosService: VideosService
+  public readonly cliService: CLIConfirmContract
 
   public readonly videosRepository: VideosRepository
   public readonly videoUploadsRepository: VideoUploadsRepository
@@ -25,6 +29,8 @@ export class UploadVideosUsecase extends Usecase {
     })
 
     this.videosService = new VideosService()
+    this.cliService = new InquirerCLIService()
+
     this.videosRepository = new VideosRepository()
     this.videoUploadsRepository = new VideoUploadsRepository()
   }
@@ -67,7 +73,7 @@ export class UploadVideosUsecase extends Usecase {
     }
 
     if (shouldAskProceed) {
-      const shouldContinue = await cli.confirm({
+      const shouldContinue = await this.cliService.confirm({
         message: 'Proceed?',
         default: false
       })

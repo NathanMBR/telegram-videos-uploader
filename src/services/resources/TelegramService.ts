@@ -11,7 +11,7 @@ import {
 } from '@/domain'
 import { execFile } from '@/utils'
 
-import type { TelegramAPI } from './data'
+import type { TelegramAPI } from '../data'
 
 export namespace TelegramService {
   export type Constructor = {
