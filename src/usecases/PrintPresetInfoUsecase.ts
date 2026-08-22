@@ -4,6 +4,7 @@ import { TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
 export class PrintPresetInfoUsecase extends Usecase {
+  public readonly actionTitle = 'Check preset data'
   public readonly telegramService: TelegramService
 
   constructor(public readonly preset: Preset) {

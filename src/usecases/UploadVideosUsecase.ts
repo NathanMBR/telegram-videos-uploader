@@ -13,6 +13,8 @@ import {
 import { getMarkdownEscapedText, getSeparator } from '@/utils'
 
 export class UploadVideosUsecase extends Usecase {
+  public readonly actionTitle = 'Upload videos'
+
   public readonly telegramService: TelegramService
   public readonly videosService: VideosService
   public readonly cliService: CLIConfirmContract

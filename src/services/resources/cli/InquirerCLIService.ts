@@ -37,7 +37,8 @@ export class InquirerCLIService
 
     const result = await cli.select({
       message,
-      choices: options.map(option => ({ name: option.label, value: option.value }))
+      choices: options.map(option => ({ name: option.label, value: option.value })),
+      pageSize: 15
     })
 
     return result

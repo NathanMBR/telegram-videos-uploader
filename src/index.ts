@@ -1,12 +1,19 @@
-import * as cli from '@inquirer/prompts'
-
-import { args, loadPresets, logger } from '@/config'
+import { args, logger } from '@/config'
 import { DrizzleConnection } from '@/db'
-import { DeleteVideoUsecase, PrintPresetInfoUsecase, UploadVideosUsecase } from '@/usecases'
+import { InquirerCLIService, PresetService } from '@/services'
+import {
+  DeleteVideoUsecase,
+  MenuUsecase,
+  PrintPresetInfoUsecase,
+  UploadVideosUsecase
+} from '@/usecases'
 
 const main = async (): Promise<number> => {
   try {
-    const [presets, presetsError] = await loadPresets(args.presetsPath)
+    const cliService = new InquirerCLIService()
+    const presetsService = new PresetService()
+
+    const [presets, presetsError] = await presetsService.getAllPresets(args.presetsPath)
     if (!presets) {
       logger.error(presetsError.message)
       return 1
@@ -17,56 +24,21 @@ const main = async (): Promise<number> => {
       return 1
     }
 
-    const chosenPresetName = await cli.select({
+    const chosenPreset = await cliService.select({
       message: 'Select the preset you want:',
-      choices: presets.map(preset => preset.name),
-      pageSize: 15
+      options: presets.map(preset => ({ label: preset.name, value: preset }))
     })
-
-    const chosenPreset = presets.find(preset => preset.name === chosenPresetName)
-    if (!chosenPreset) {
-      throw new Error('Unable to pick chosen preset')
-    }
 
     DrizzleConnection.databaseUrl = chosenPreset.databaseUrl
     await DrizzleConnection.runMigrations()
 
-    const chosenAction = await cli.select({
-      message: 'Select the action you want:',
-      choices: [
-        {
-          name: 'Upload videos',
-          value: 'upload-videos'
-        },
+    const menuUsecase = new MenuUsecase(chosenPreset, [
+      new UploadVideosUsecase(chosenPreset),
+      new DeleteVideoUsecase(chosenPreset),
+      new PrintPresetInfoUsecase(chosenPreset)
+    ])
 
-        {
-          name: 'Check preset data',
-          value: 'check-preset-data'
-        },
-
-        {
-          name: 'Delete video',
-          value: 'delete-video'
-        }
-      ]
-    })
-
-    switch (chosenAction) {
-      case 'upload-videos':
-        await new UploadVideosUsecase(chosenPreset).execute()
-        break
-
-      case 'check-preset-data':
-        await new PrintPresetInfoUsecase(chosenPreset).execute()
-        break
-
-      case 'delete-video':
-        await new DeleteVideoUsecase(chosenPreset).execute()
-        break
-
-      default:
-        throw new Error('Unexpected chosen action')
-    }
+    await menuUsecase.execute()
 
     return 0
   } catch (error: unknown) {

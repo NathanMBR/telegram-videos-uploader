@@ -9,6 +9,8 @@ import {
 } from '@/services'
 
 export class DeleteVideoUsecase extends Usecase {
+  public readonly actionTitle = 'Delete video'
+
   private readonly videosRepository: VideosRepository
   private readonly videoUploadsRepository: VideoUploadsRepository
 
