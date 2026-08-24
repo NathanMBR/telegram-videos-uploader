@@ -57,6 +57,6 @@ export class PrintPresetInfoUsecase extends Usecase {
       default: true
     })
 
-    return shouldGoBack ? 'BACK' : 'OK'
+    return shouldGoBack ? 'MENU' : 'OK'
   }
 }

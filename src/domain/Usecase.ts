@@ -2,7 +2,7 @@ import { logger } from '@/config'
 import type { Preset } from './Preset'
 
 export namespace Usecase {
-  export type ExecuteReturn = 'OK' | 'BACK'
+  export type ExecuteReturn = 'OK' | 'MENU' | 'PRESET'
 }
 
 export abstract class Usecase {

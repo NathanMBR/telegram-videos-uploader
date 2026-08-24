@@ -81,7 +81,7 @@ export class UploadVideosUsecase extends Usecase {
       })
 
       if (!shouldContinue) {
-        return 'BACK'
+        return 'MENU'
       }
     }
 

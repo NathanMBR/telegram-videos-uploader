@@ -23,6 +23,10 @@ export class DrizzleConnection {
   }
 
   public static set databaseUrl(databaseUrl: string) {
+    if (DrizzleConnection.#instance && !DrizzleConnection.#instance.$client.closed) {
+      DrizzleConnection.#instance.$client.close()
+    }
+
     DrizzleConnection.#databaseUrl = databaseUrl
   }
 
@@ -38,7 +42,7 @@ export class DrizzleConnection {
     return DrizzleConnection.#instance
   }
 
-  public static set instance(_instance: DrizzleInstance) {
+  private static set instance(_instance: DrizzleInstance) {
     throw new Error(`DrizzleConnection.instance is a singleton and shouldn't be changed`)
   }
 

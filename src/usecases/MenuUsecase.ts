@@ -15,19 +15,34 @@ export class MenuUsecase extends Usecase {
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {
-    const chosenAction = await this.cliService.select({
-      message: 'Select the action you want:',
-      options: this.usecases.map(usecase => ({
-        label: usecase.actionTitle,
-        value: usecase
-      }))
-    })
+    const options = this.usecases.map(usecase => ({
+      label: usecase.actionTitle,
+      value: async () => await usecase.execute()
+    }))
 
-    const chosenActionResult = await chosenAction.execute()
-    if (chosenActionResult === 'BACK') {
-      await this.execute()
+    const changePresetOption = {
+      label: 'Change preset',
+      value: async () => 'PRESET' as const
     }
 
-    return 'OK'
+    const exitOption = {
+      label: 'Exit',
+      value: async () => 'OK' as const
+    } as const
+
+    options.unshift(changePresetOption)
+    options.push(exitOption)
+
+    const chosenAction = await this.cliService.select({
+      message: 'Select the action you want:',
+      options
+    })
+
+    const chosenActionResult = await chosenAction()
+    if (chosenActionResult === 'MENU') {
+      return await this.execute()
+    }
+
+    return chosenActionResult
   }
 }

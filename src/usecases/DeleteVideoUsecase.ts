@@ -52,7 +52,7 @@ export class DeleteVideoUsecase extends Usecase {
 
     if (!deleteConfirmation) {
       stepsLogger.info('Deletion cancelled.')
-      return 'BACK'
+      return 'MENU'
     }
 
     if (args.dryRun) {
