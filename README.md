@@ -176,11 +176,17 @@ The code reads the contents of the `presets.json` file in the project's root dir
 
 The available actions are:
 
+- **Change preset:** returns to the preset selection. The `presets.json` file is read again, the connection to the current preset's database is closed, and the newly chosen preset's database is connected and migrated, just like on startup. It's the first option in the menu.
+
 - **Upload videos:** reads the video data from the `videos.json` file inside the preset's videos directory (if it exists) to use as a reference. Then, the video is split into segments smaller than (or equal to) 1.75GB in size, the _cover image_ is converted into a _thumbnail_ if it already exists or extracted from the video itself otherwise, and the video is uploaded to the Telegram channel.
 
 - **Check preset data:** doesn't upload anything. It prints the main settings of the chosen preset (name, origin, database, videos directory, channel name, channel URL and date format) and then queries the Telegram `Bot API` to print the data of the channel (title and description) and of the bot (name and username) that the preset actually points to. It's useful to confirm that the bot token, the channel ID and the API URL are correct before starting an upload.
 
 - **Delete video:** shows a searchable list of the videos the tool has already registered — typing filters by filename, title and description — and deletes the selected one after a confirmation prompt. Answering "no" to the confirmation cancels the operation and nothing is deleted.
+
+- **Exit:** ends the program. It's the last option in the menu.
+
+Once an action finishes, the program ends — unless it sends you back to the action menu. That happens when you decline the `Proceed?` confirmation of the upload action, when you decline the deletion confirmation of the delete action, and when you answer yes to the `Return to menu?` question that the preset data action asks after printing everything (yes is the default). To leave from the menu itself, use the **Exit** option.
 
 When the `--dryRun` (`-d`) flag is provided, the upload action neither persists data to the database nor uploads any video.
 

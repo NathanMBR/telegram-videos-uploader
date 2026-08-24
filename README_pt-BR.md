@@ -176,11 +176,17 @@ O código lê o conteúdo do arquivo `presets.json` presente na raiz do projeto 
 
 As ações disponíveis são:
 
+- **Trocar preset:** volta para a seleção de presets. O arquivo `presets.json` é lido novamente, a conexão com o banco de dados do preset atual é fechada, e o banco de dados do preset recém-escolhido é conectado e migrado, assim como na inicialização. É a primeira opção do menu.
+
 - **Upload de vídeos:** lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Então, o vídeo é dividido em segmentos menores que (ou iguais a) 1.75GB de tamanho, a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
 
 - **Checagem dos dados do preset:** não faz nenhum upload. Imprime as principais configurações do preset escolhido (nome, origem, banco de dados, diretório de vídeos, nome do canal, URL do canal e formato de data) e depois consulta a `Bot API` do Telegram para imprimir os dados do canal (título e descrição) e do bot (nome e nome de usuário) para os quais o preset realmente aponta. É útil para confirmar que o token do bot, o ID do canal e a URL da API estão corretos antes de iniciar um upload.
 
 - **Deletar vídeo:** exibe uma lista pesquisável dos vídeos já registrados pela ferramenta — a busca filtra por nome de arquivo, título e descrição — e deleta o selecionado após uma confirmação. Responder "não" à confirmação cancela a operação e nada é deletado.
+
+- **Sair:** encerra o programa. É a última opção do menu.
+
+Ao terminar, uma ação encerra o programa — a não ser que ela devolva você ao menu de ações. Isso acontece quando você recusa a confirmação `Proceed?` da ação de upload, quando recusa a confirmação de exclusão da ação de deletar, e quando responde que sim à pergunta `Return to menu?` que a ação de checagem dos dados do preset faz após imprimir tudo (sim é a resposta padrão). Para encerrar a partir do próprio menu, utilize a opção **Sair**.
 
 Quando a flag `--dryRun` (`-d`) é informada, a ação de upload não persiste dados no banco de dados nem faz o upload de nenhum vídeo.
 
