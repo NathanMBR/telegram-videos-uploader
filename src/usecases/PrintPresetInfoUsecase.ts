@@ -1,11 +1,13 @@
 import { stepsLogger } from '@/config'
 import { type Preset, Usecase } from '@/domain'
-import { TelegramService } from '@/services'
+import { type CLIConfirmContract, InquirerCLIService, TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
 export class PrintPresetInfoUsecase extends Usecase {
   public readonly actionTitle = 'Check preset data'
+
   public readonly telegramService: TelegramService
+  public readonly cliService: CLIConfirmContract
 
   constructor(public readonly preset: Preset) {
     super()
@@ -14,9 +16,11 @@ export class PrintPresetInfoUsecase extends Usecase {
       apiBaseUrl: preset.telegram.apiBaseUrl,
       botToken: preset.telegram.botToken
     })
+
+    this.cliService = new InquirerCLIService()
   }
 
-  async execute() {
+  async execute(): Promise<Usecase.ExecuteReturn> {
     const isApiAvailable = await this.telegramService.runHealthCheck()
     if (!isApiAvailable) {
       throw new Error(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
@@ -47,5 +51,12 @@ export class PrintPresetInfoUsecase extends Usecase {
       `Bot title: ${telegramBotSelfData.firstName} ${telegramBotSelfData.lastName || ''}`
     )
     stepsLogger.info(`Bot username: @${telegramBotSelfData.username}`)
+
+    const shouldGoBack = await this.cliService.confirm({
+      message: 'Return to menu?',
+      default: true
+    })
+
+    return shouldGoBack ? 'BACK' : 'OK'
   }
 }

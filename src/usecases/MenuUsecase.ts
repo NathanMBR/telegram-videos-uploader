@@ -14,7 +14,7 @@ export class MenuUsecase extends Usecase {
     this.cliService = new InquirerCLIService()
   }
 
-  async execute() {
+  async execute(): Promise<Usecase.ExecuteReturn> {
     const chosenAction = await this.cliService.select({
       message: 'Select the action you want:',
       options: this.usecases.map(usecase => ({
@@ -23,6 +23,11 @@ export class MenuUsecase extends Usecase {
       }))
     })
 
-    await chosenAction.execute()
+    const chosenActionResult = await chosenAction.execute()
+    if (chosenActionResult === 'BACK') {
+      await this.execute()
+    }
+
+    return 'OK'
   }
 }

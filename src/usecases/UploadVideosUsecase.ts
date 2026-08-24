@@ -37,7 +37,7 @@ export class UploadVideosUsecase extends Usecase {
     this.videoUploadsRepository = new VideoUploadsRepository()
   }
 
-  async execute() {
+  async execute(): Promise<Usecase.ExecuteReturn> {
     const { videosDirectory } = this.preset
 
     const isApiAvailable = await this.telegramService.runHealthCheck()
@@ -51,7 +51,7 @@ export class UploadVideosUsecase extends Usecase {
 
     if (videosFileNames.length <= 0) {
       logger.warn(`No .mp4 files found at directory "${videosDirectory}"`)
-      return
+      return 'OK'
     }
 
     let shouldAskProceed = false
@@ -81,7 +81,7 @@ export class UploadVideosUsecase extends Usecase {
       })
 
       if (!shouldContinue) {
-        return
+        return 'BACK'
       }
     }
 
@@ -281,5 +281,7 @@ export class UploadVideosUsecase extends Usecase {
     }
 
     stepsLogger.info('All videos successfully uploaded!')
+
+    return 'OK'
   }
 }

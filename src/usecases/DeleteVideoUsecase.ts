@@ -30,7 +30,7 @@ export class DeleteVideoUsecase extends Usecase {
     })
   }
 
-  public async execute() {
+  public async execute(): Promise<Usecase.ExecuteReturn> {
     const selectedVideo = await this.cliService.autocomplete({
       message: 'Select the video to remove:',
       getOptions: async input => {
@@ -52,12 +52,12 @@ export class DeleteVideoUsecase extends Usecase {
 
     if (!deleteConfirmation) {
       stepsLogger.info('Deletion cancelled.')
-      return
+      return 'BACK'
     }
 
     if (args.dryRun) {
       this.printDryRunMessage()
-      return
+      return 'OK'
     }
 
     const videoUploads = await this.videoUploadsRepository.getAll(selectedVideo.id)
@@ -70,5 +70,7 @@ export class DeleteVideoUsecase extends Usecase {
     await this.videosRepository.deleteFromId(selectedVideo.id)
 
     stepsLogger.info('Successfully deleted!')
+
+    return 'OK'
   }
 }
