@@ -169,7 +169,7 @@ Table with the available flags:
 | Flag | Short | Type | Default | Description |
 |---|---|---|---|---|
 | `--presetsPath` | `-p` | Text | `presets.json` in the directory where the command is run | Path to the `presets.json` file |
-| `--dryRun` | `-d` | Boolean | `false` | Runs the upload action without persisting data to the database or uploading videos |
+| `--dryRun` | `-d` | Boolean | `false` | Runs the upload action without converting files, persisting data to the database or uploading videos |
 
 ### How it works
 The code reads the contents of the `presets.json` file in the project's root directory to obtain its settings. From there, it first asks the user to select one of the presets provided by the file. Right after the selection, it connects to the database defined in the preset's `databaseUrl` property and applies the pending migrations automatically (creating the database file if it doesn't exist yet), and then asks the user to select an action.
@@ -178,7 +178,7 @@ The available actions are:
 
 - **Change preset:** returns to the preset selection. The `presets.json` file is read again, the connection to the current preset's database is closed, and the newly chosen preset's database is connected and migrated, just like on startup. It's the first option in the menu.
 
-- **Upload videos:** reads the video data from the `videos.json` file inside the preset's videos directory (if it exists) to use as a reference. Then, the video is split into segments smaller than (or equal to) 1.75GB in size, the _cover image_ is converted into a _thumbnail_ if it already exists or extracted from the video itself otherwise, and the video is uploaded to the Telegram channel.
+- **Upload videos:** reads the video data from the `videos.json` file inside the preset's videos directory (if it exists) to use as a reference. If the directory also holds videos in a format that needs conversion, it asks whether to convert them to `.mp4` first (the default answer is yes), and the converted videos take part in the same run. Then, the video is split into segments smaller than (or equal to) 1.75GB in size, the _cover image_ is converted into a _thumbnail_ if it already exists or extracted from the video itself otherwise, and the video is uploaded to the Telegram channel.
 
 - **Check preset data:** doesn't upload anything. It prints the main settings of the chosen preset (name, origin, database, videos directory, channel name, channel URL and date format) and then queries the Telegram `Bot API` to print the data of the channel (title and description) and of the bot (name and username) that the preset actually points to. It's useful to confirm that the bot token, the channel ID and the API URL are correct before starting an upload.
 
@@ -188,7 +188,7 @@ The available actions are:
 
 Once an action finishes, the program ends — unless it sends you back to the action menu. That happens when you decline the `Proceed?` confirmation of the upload action, when you decline the deletion confirmation of the delete action, and when you answer yes to the `Return to menu?` question that the preset data action asks after printing everything (yes is the default). To leave from the menu itself, use the **Exit** option.
 
-When the `--dryRun` (`-d`) flag is provided, the upload action neither persists data to the database nor uploads any video.
+When the `--dryRun` (`-d`) flag is provided, the upload action doesn't convert any file, persist data to the database or upload any video. The questions are still asked.
 
 ### About the `videos.json` file
 The `videos.json` file defines the video information that will be used to post it to the Telegram channel, such as title, URL, among others. It must always be saved with this name, in the same directory specified in the preset you are using. Its format is an array of objects containing the following properties:
@@ -232,9 +232,9 @@ If you wish, it is also possible to write the `videos.json` file manually, altho
 ### Limitations
 - If your videos are too large, it won't be possible to use Telegram's default API, and you'll need to spin up your own server for the upload. Check the ["Understanding the difference between `Bot API` servers"](#understanding-the-difference-between-bot-api-servers) section to learn more about it.
 
-- At the present time, this project is only capable of handling videos in the `.mp4` format and _cover images_ in the `.jpg` and `.jpeg` formats. If your files are not in these formats, convert them beforehand.
+- Uploads are always made in the `.mp4` format, but the tool also accepts `.mkv`, `.avi`, `.wmv`, `.webm`, `.mov`, `.mpg`, `.mpeg`, `.flv`, `.ogv`, `.3gp`, `.vob` and `.mxf` files: when it finds any of them in the videos directory, the upload action asks whether to convert them to `.mp4` before continuing (the default answer is yes), and the converted files are uploaded in the same run. Answering "no" leaves those files out. _Cover images_, however, are still only handled in the `.jpg` and `.jpeg` formats — convert them beforehand.
 
-> **Note:** You can perform this conversion using [the `convert_webm_and_mkv_to_mp4.sh` script](./scripts/convert_webm_and_mkv_to_mp4.sh), located in the `scripts` directory; just run it inside the location where your videos are saved. If you use an **NVIDIA** graphics card with **CUDA** support, use [the `nvidia_convert_webm_and_mkv_to_mp4.sh` script](./scripts/nvidia_convert_webm_and_mkv_to_mp4.sh) instead.
+> **Note:** the built-in conversion re-encodes with `ffmpeg` on the CPU (H.264 video, AAC audio), which can be slow for long or numerous videos. To convert beforehand instead — especially with GPU acceleration — use [the `convertWebmAndMkvToMp4Cpu.sh` script](./scripts/convertWebmAndMkvToMp4Cpu.sh) or, if you have an **NVIDIA** graphics card with **CUDA** support, [the `convertWebmAndMkvToMp4Nvidia.sh` script](./scripts/convertWebmAndMkvToMp4Nvidia.sh), both located in the `scripts` directory; just run either one inside the location where your videos are saved.
 
 ## Contributing
 You can suggest changes to the project by opening an issue [on the project's GitHub page](https://github.com/NathanMBR/telegram-videos-uploader). Pull requests are welcome.

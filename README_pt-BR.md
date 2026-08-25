@@ -169,7 +169,7 @@ Tabela com as flags disponíveis:
 | Flag | Atalho | Tipo | Padrão | Descrição |
 |---|---|---|---|---|
 | `--presetsPath` | `-p` | Texto | `presets.json` no diretório onde o comando é rodado | Caminho do arquivo `presets.json` |
-| `--dryRun` | `-d` | Booleano | `false` | Roda a ação de upload sem persistir informações no banco de dados ou fazer o upload de vídeos |
+| `--dryRun` | `-d` | Booleano | `false` | Roda a ação de upload sem converter arquivos, persistir informações no banco de dados ou fazer o upload de vídeos |
 
 ### Como funciona
 O código lê o conteúdo do arquivo `presets.json` presente na raiz do projeto para obter suas configurações. A partir daí, pede primeiramente ao usuário para selecionar um dos presets providos pelo arquivo. Logo após a seleção, conecta-se ao banco de dados definido na propriedade `databaseUrl` do preset e aplica as migrations pendentes automaticamente (criando o arquivo do banco de dados caso ele ainda não exista), e depois pede para selecionar uma ação.
@@ -178,7 +178,7 @@ As ações disponíveis são:
 
 - **Trocar preset:** volta para a seleção de presets. O arquivo `presets.json` é lido novamente, a conexão com o banco de dados do preset atual é fechada, e o banco de dados do preset recém-escolhido é conectado e migrado, assim como na inicialização. É a primeira opção do menu.
 
-- **Upload de vídeos:** lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Então, o vídeo é dividido em segmentos menores que (ou iguais a) 1.75GB de tamanho, a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
+- **Upload de vídeos:** lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Caso o diretório também possua vídeos em um formato que precise de conversão, é perguntado se você deseja convertê-los para `.mp4` primeiro (a resposta padrão é sim), e os vídeos convertidos participam da mesma execução. Então, o vídeo é dividido em segmentos menores que (ou iguais a) 1.75GB de tamanho, a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
 
 - **Checagem dos dados do preset:** não faz nenhum upload. Imprime as principais configurações do preset escolhido (nome, origem, banco de dados, diretório de vídeos, nome do canal, URL do canal e formato de data) e depois consulta a `Bot API` do Telegram para imprimir os dados do canal (título e descrição) e do bot (nome e nome de usuário) para os quais o preset realmente aponta. É útil para confirmar que o token do bot, o ID do canal e a URL da API estão corretos antes de iniciar um upload.
 
@@ -188,7 +188,7 @@ As ações disponíveis são:
 
 Ao terminar, uma ação encerra o programa — a não ser que ela devolva você ao menu de ações. Isso acontece quando você recusa a confirmação `Proceed?` da ação de upload, quando recusa a confirmação de exclusão da ação de deletar, e quando responde que sim à pergunta `Return to menu?` que a ação de checagem dos dados do preset faz após imprimir tudo (sim é a resposta padrão). Para encerrar a partir do próprio menu, utilize a opção **Sair**.
 
-Quando a flag `--dryRun` (`-d`) é informada, a ação de upload não persiste dados no banco de dados nem faz o upload de nenhum vídeo.
+Quando a flag `--dryRun` (`-d`) é informada, a ação de upload não converte nenhum arquivo, não persiste dados no banco de dados e não faz o upload de nenhum vídeo. As perguntas continuam sendo feitas.
 
 ### Sobre o arquivo `videos.json`
 O arquivo `videos.json` define as informações do vídeo que serão utilizadas para a postagem do mesmo no canal do Telegram, como título, URL, dentre outras. Ele deve sempre ser salvo com esse nome, no mesmo diretório que foi informado no preset que você estiver utilizando. O formato dele é de um array de objetos contendo as seguintes propriedades:
@@ -232,9 +232,9 @@ Caso deseje, também é possível escrever manualmente o arquivo `videos.json`, 
 ### Limitações
 - Caso seus vídeos sejam muito grandes, não será possível utilizar a API padrão do Telegram, sendo necessário subir seu próprio servidor para o upload. Verifique a seção ["Entendendo a diferença entre servidores da `Bot API`"](#entendendo-a-diferença-entre-servidores-da-bot-api) para saber mais sobre.
 
-- Até o presente momento, este projeto é capaz de lidar apenas com vídeos no formato `.mp4` e _cover images_ nos formatos `.jpg` e `.jpeg`. Caso seus arquivos não estejam nesses formatos, converta-os antes.
+- Os uploads são sempre feitos no formato `.mp4`, mas a ferramenta também aceita arquivos `.mkv`, `.avi`, `.wmv`, `.webm`, `.mov`, `.mpg`, `.mpeg`, `.flv`, `.ogv`, `.3gp`, `.vob` e `.mxf`: ao encontrar algum deles no diretório de vídeos, a ação de upload pergunta se você deseja convertê-los para `.mp4` antes de continuar (a resposta padrão é sim), e os arquivos convertidos têm o upload feito na mesma execução. Responder "não" deixa esses arquivos de fora. As _cover images_, no entanto, continuam sendo tratadas apenas nos formatos `.jpg` e `.jpeg` — converta-as antes.
 
-> **Nota:** Você pode fazer essa conversão utilizando [o script `convert_webm_and_mkv_to_mp4.sh`](./scripts/convert_webm_and_mkv_to_mp4.sh), localizado no diretório `scripts`; basta executá-lo dentro do local em que os seus vídeos estão salvos. Se você utiliza uma placa de vídeo **NVIDIA** com suporte **CUDA**, utilize [o script `nvidia_convert_webm_and_mkv_to_mp4.sh`](./scripts/nvidia_convert_webm_and_mkv_to_mp4.sh) ao invés disso.
+> **Nota:** a conversão embutida re-codifica com o `ffmpeg` na CPU (vídeo em H.264, áudio em AAC), o que pode ser lento para vídeos longos ou numerosos. Para converter antecipadamente — especialmente com aceleração por GPU — utilize [o script `convertWebmAndMkvToMp4Cpu.sh`](./scripts/convertWebmAndMkvToMp4Cpu.sh) ou, caso você utilize uma placa de vídeo **NVIDIA** com suporte **CUDA**, [o script `convertWebmAndMkvToMp4Nvidia.sh`](./scripts/convertWebmAndMkvToMp4Nvidia.sh), ambos localizados no diretório `scripts`; basta executar um deles dentro do local em que os seus vídeos estão salvos.
 
 ## Contribuindo
 Você pode sugerir mudanças para o projeto abrindo uma issue [na página do projeto no GitHub](https://github.com/NathanMBR/telegram-videos-uploader). Pull requests são bem-vindos.
