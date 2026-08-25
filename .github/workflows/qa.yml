@@ -24,8 +24,8 @@ jobs:
       - name: Install Node.js packages
         run: pnpm install
 
-      - name: Typecheck
-        run: pnpm typecheck
+      - name: Lint types
+        run: pnpm lint:type
 
-      - name: Lintcheck
-        run: pnpm check:ci
+      - name: Lint check
+        run: pnpm lint:check:ci
