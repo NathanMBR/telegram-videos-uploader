@@ -11,12 +11,6 @@ import {
 import { checkPathAccessibility, execFile } from '@/utils'
 
 export namespace VideosService {
-  type LoadVideosMetadataSuccessResult = [VideosMetadata, null]
-  type LoadVideosMetadataFailureResult = [null, Error]
-  export type LoadVideosMetadataResult = Promise<
-    LoadVideosMetadataSuccessResult | LoadVideosMetadataFailureResult
-  >
-
   export type GenerateVideoSegmentsDTO = {
     videoFilePath: string
     videoSegmentsDirectory: string
@@ -29,6 +23,17 @@ export namespace VideosService {
     videoFileNameWithoutExtension: string
   }
 
+  export type ListVideosFileNamesResult = {
+    videosFileNames: Array<string>
+    videosFileNamesForConversion: Array<string>
+  }
+
+  type LoadVideosMetadataSuccessResult = [VideosMetadata, null]
+  type LoadVideosMetadataFailureResult = [null, Error]
+  export type LoadVideosMetadataResult = Promise<
+    LoadVideosMetadataSuccessResult | LoadVideosMetadataFailureResult
+  >
+
   export type SortByVideosMetadataUploadDateDTO = {
     videosFileNames: Array<string>
     videosMetadata: VideosMetadata | null
@@ -36,8 +41,22 @@ export namespace VideosService {
 }
 
 export class VideosService {
-  segmentsDirectory = 'segments'
-  acceptedVideoFormats = ['.mp4']
+  private readonly segmentsDirectory = 'segments'
+  private readonly acceptedVideoFormats = ['.mp4']
+  private readonly acceptedWithConversionVideoFormats = [
+    '.mkv',
+    '.avi',
+    '.wmv',
+    '.webm',
+    '.mov',
+    '.mpg',
+    '.mpeg',
+    '.flv',
+    '.ogv',
+    '.3gp',
+    '.vob',
+    '.mxf'
+  ]
 
   async convertVideoCoverToThumbnail(videoCoverPath: string): Promise<string> {
     const coverPathParsed = path.parse(videoCoverPath)
@@ -58,6 +77,28 @@ export class VideosService {
     await execFile('ffmpeg', ffmpegCommandArgs)
 
     return thumbnailPath
+  }
+
+  async convertVideoToMp4(videoPath: string): Promise<string> {
+    const videoPathParsed = path.parse(videoPath)
+
+    const convertedFileName = `${videoPathParsed.name}.mp4`
+    const convertedFilePath = path.join(videoPathParsed.dir, convertedFileName)
+
+    const ffmpegCommandArgs: Array<string> = [
+      '-y',
+      '-i',
+      videoPath,
+      '-c:v',
+      'libx264',
+      '-c:a',
+      'aac',
+      convertedFilePath
+    ]
+
+    await execFile('ffmpeg', ffmpegCommandArgs)
+
+    return convertedFileName
   }
 
   async deleteVideoSegments(videoSegmentsDirectory: string): Promise<void> {
@@ -232,7 +273,9 @@ export class VideosService {
     return videoSegmentsDirectory
   }
 
-  async listVideosFileNames(videosDirectory: string): Promise<Array<string>> {
+  async listVideosFileNames(
+    videosDirectory: string
+  ): Promise<VideosService.ListVideosFileNamesResult> {
     const videosDirectoryStatus = await checkPathAccessibility(videosDirectory)
     if (videosDirectoryStatus === 'INEXISTENT') {
       throw new Error(`Videos directory "${videosDirectory}" doesn't exist`)
@@ -250,7 +293,14 @@ export class VideosService {
       this.acceptedVideoFormats.some(format => fileName.endsWith(format))
     )
 
-    return videosFileNames
+    const videosFileNamesForConversion = fileNames.filter(fileName =>
+      this.acceptedWithConversionVideoFormats.some(format => fileName.endsWith(format))
+    )
+
+    return {
+      videosFileNames,
+      videosFileNamesForConversion
+    }
   }
 
   async listVideoSegmentsFileNames(videoSegmentsDirectory: string): Promise<Array<string>> {

@@ -45,13 +45,44 @@ export class UploadVideosUsecase extends Usecase {
       throw new Error(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
     }
 
-    const videosFileNames = await this.videosService.listVideosFileNames(videosDirectory)
     const [videosMetadata, videosMetadataError] =
       await this.videosService.loadVideosMetadata(videosDirectory)
 
-    if (videosFileNames.length <= 0) {
-      logger.warn(`No .mp4 files found at directory "${videosDirectory}"`)
+    const listVideosFileNamesResponse =
+      await this.videosService.listVideosFileNames(videosDirectory)
+
+    let { videosFileNames } = listVideosFileNamesResponse
+    const { videosFileNamesForConversion } = listVideosFileNamesResponse
+    if (videosFileNames.length <= 0 && videosFileNamesForConversion.length <= 0) {
+      logger.warn(`No files found at directory "${videosDirectory}"`)
       return 'OK'
+    }
+
+    if (videosFileNamesForConversion.length > 0) {
+      const shouldConvert = await this.cliService.confirm({
+        message: `Found ${videosFileNamesForConversion.length} files that could be uploaded if converted first. Convert them?`,
+        default: true
+      })
+
+      if (shouldConvert) {
+        const convertedVideosFileNames: Array<string> = []
+
+        for (const videoFileName of videosFileNamesForConversion) {
+          stepsLogger.info(`Converting file "${videoFileName}"...`)
+
+          const videoPath = path.join(videosDirectory, videoFileName)
+
+          if (args.dryRun) {
+            this.printDryRunMessage()
+            continue
+          }
+
+          await this.videosService.convertVideoToMp4(videoPath)
+          convertedVideosFileNames.push(videoFileName)
+        }
+
+        videosFileNames = [...videosFileNames, ...convertedVideosFileNames]
+      }
     }
 
     let shouldAskProceed = false
