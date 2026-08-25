@@ -14,13 +14,13 @@ External CLI binaries **`ffmpeg` and `ffprobe` must be on `PATH`** — they are 
 pnpm dev          # run from source with tsx (loads .env)
 pnpm build        # compile src -> build/ with swc (commonjs output)
 pnpm start        # run compiled build/ with node (loads .env)
-pnpm check        # biome check --write (lint + format + organize imports) — run this before committing
-pnpm lint         # biome lint --write
-pnpm format       # biome format --write
+pnpm lint:type    # tsc — type-check only (tsconfig is `noEmit`)
+pnpm lint:check   # biome check --write (lint + format + organize imports) — run this before committing
+pnpm lint:check:ci # biome check — same checks without writing
 pnpm migrate      # drizzle-kit migrate — reads the DB url from the DB_FILE env (drizzle-kit only)
 ```
 
-There is **no test suite and no `tsc` typecheck script** (tsconfig is `noEmit`, type-checking happens in-editor). Biome is the only enforced gate.
+There is **no test suite**. The enforced gates are `pnpm lint:type` and `pnpm lint:check` — there are no separate `lint`/`format` scripts, `lint:check` covers both.
 
 After editing `src/db/schemas/`, regenerate migrations with `pnpm drizzle-kit generate`. Applying them by hand is usually unnecessary — the app calls `DrizzleConnection.runMigrations()` automatically right after a preset is chosen. Note that `drizzle.config.ts` (and only it) still resolves the database from the `DB_FILE` env var; the app itself no longer reads that variable.
 
@@ -85,3 +85,5 @@ These are the **documentation / example files** of this repo. When asked to "upd
 | `.env.example` | Template for the gitignored `.env` |
 
 The two READMEs are kept in sync: each opens with a note linking to the other version, and they must stay equivalent — change both or neither. `presets.example.json` must remain valid JSON (no comments) and validate against `presetSchema` in `src/domain/Preset.ts`; the commented `jsonc` example inside both READMEs must be kept consistent with it.
+
+**Where to explain what:** `CLAUDE.md` is the only one of these files that may discuss implementation, internal technical decisions, tooling and CI. The files meant for the user to read — `README.md`, `README_pt-BR.md`, `presets.example.json` and `.env.example` — must cover **only the user's experience**: the commands they run, the flags and config they write, the prompts they answer and the behavior they observe. Never mention internals, refactors, script/tooling renames or workflow files in them.
