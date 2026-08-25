@@ -3,28 +3,28 @@
 set -euo pipefail
 
 INPUT_JSON=""
+
 REMOVE_TIMESTAMP=false
 
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -r)
-            REMOVE_TIMESTAMP=true
-            shift
-            ;;
-        -*)
-            echo "Error: Unknown option: $1"
-            exit 1
-            ;;
-        *)
-            if [[ -n "$INPUT_JSON" ]]; then
-                echo "Error: Multiple input files provided"
-                exit 1
-            fi
-
-            INPUT_JSON="$1"
-            shift
-            ;;
-    esac
+  case "$1" in
+    -r)
+      REMOVE_TIMESTAMP=true
+      shift
+      ;;
+    -*)
+      echo "Error: Unknown option: $1"
+      exit 1
+      ;;
+    *)
+      if [[ -n "$INPUT_JSON" ]]; then
+        echo "Error: Multiple input files provided"
+        exit 1
+      fi
+      INPUT_JSON="$1"
+      shift
+      ;;
+  esac
 done
 
 if [[ -z "$INPUT_JSON" ]]; then
@@ -52,9 +52,11 @@ fi
 if jq -e '.entries[0] | has("entries")' "$INPUT_JSON" >/dev/null 2>&1; then
   # Entire channel: multiple categories, each containing videos
   JQ_INPUT='.entries | map(.entries[])'
+
 elif jq -e 'has("entries")' "$INPUT_JSON" >/dev/null 2>&1; then
   # Specific tab: entries are already videos
   JQ_INPUT='.entries'
+
 else
   # Single video: the root object itself is the video
   JQ_INPUT='[.]'
@@ -70,9 +72,7 @@ $JQ_INPUT
     availability,
     upload_date:
       (
-        if (.release_date == null or .release_date == \"\") then
-          \"\"
-        else
+        if (.release_date != null and .release_date != \"\") then
           (
             .release_date[0:4]
             + \"-\"
@@ -80,6 +80,16 @@ $JQ_INPUT
             + \"-\"
             + .release_date[6:8]
           )
+        elif (.upload_date != null and .upload_date != \"\") then
+          (
+            .upload_date[0:4]
+            + \"-\"
+            + .upload_date[4:6]
+            + \"-\"
+            + .upload_date[6:8]
+          )
+        else
+          \"\"
         end
       )
   })
