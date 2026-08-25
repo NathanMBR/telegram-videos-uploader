@@ -1,6 +1,7 @@
 import { asc, eq } from 'drizzle-orm'
 
 import { DrizzleConnection, type VideoUpload, videoUploadsTable } from '@/db'
+import { ImplementationError } from '@/errors'
 
 export class VideoUploadsRepository {
   private readonly drizzle = DrizzleConnection.instance
@@ -22,7 +23,7 @@ export class VideoUploadsRepository {
       .returning()
 
     if (!videoUpload) {
-      throw new Error(
+      throw new ImplementationError(
         `Unable to save VideoUpload with telegramPostId "${videoUploadDto.telegramPostId}" in the database`
       )
     }

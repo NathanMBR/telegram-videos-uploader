@@ -1,11 +1,13 @@
 import { drizzle } from 'drizzle-orm/libsql'
 import { migrate } from 'drizzle-orm/libsql/migrator'
 
+import { ImplementationError } from '@/errors'
+
 type DrizzleInstance = ReturnType<typeof drizzle>
 
 export class DrizzleConnection {
   private constructor() {
-    throw new Error(`DrizzleConnection is a singleton and shouldn't be instanciated`)
+    throw new ImplementationError(`DrizzleConnection is a singleton and shouldn't be instanciated`)
   }
 
   static #databaseUrl: string
@@ -16,7 +18,7 @@ export class DrizzleConnection {
 
   public static get databaseUrl() {
     if (!DrizzleConnection.#databaseUrl) {
-      throw new Error('DrizzleInstance.databaseUrl is empty')
+      throw new ImplementationError('DrizzleInstance.databaseUrl is empty')
     }
 
     return DrizzleConnection.#databaseUrl
@@ -43,7 +45,9 @@ export class DrizzleConnection {
   }
 
   private static set instance(_instance: DrizzleInstance) {
-    throw new Error(`DrizzleConnection.instance is a singleton and shouldn't be changed`)
+    throw new ImplementationError(
+      `DrizzleConnection.instance is a singleton and shouldn't be changed`
+    )
   }
 
   public static async runMigrations() {

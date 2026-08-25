@@ -1,5 +1,6 @@
 import { stepsLogger } from '@/config'
 import { type Preset, Usecase } from '@/domain'
+import { UsageError } from '@/errors'
 import { type CLIConfirmContract, InquirerCLIService, TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
@@ -23,7 +24,7 @@ export class PrintPresetInfoUsecase extends Usecase {
   async execute(): Promise<Usecase.ExecuteReturn> {
     const isApiAvailable = await this.telegramService.runHealthCheck()
     if (!isApiAvailable) {
-      throw new Error(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
+      throw new UsageError(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
     }
 
     const telegramChatData = await this.telegramService.getChatData(this.preset.telegram.channelId)

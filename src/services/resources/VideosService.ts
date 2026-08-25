@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+
 import { stepsLogger } from '@/config'
 import type { Video } from '@/db'
 import {
@@ -8,6 +9,7 @@ import {
   type VideosMetadata,
   videosMetadataSchema
 } from '@/domain'
+import { ImplementationError, UsageError } from '@/errors'
 import { checkPathAccessibility, execFile } from '@/utils'
 
 export namespace VideosService {
@@ -27,12 +29,6 @@ export namespace VideosService {
     videosFileNames: Array<string>
     videosFileNamesForConversion: Array<string>
   }
-
-  type LoadVideosMetadataSuccessResult = [VideosMetadata, null]
-  type LoadVideosMetadataFailureResult = [null, Error]
-  export type LoadVideosMetadataResult = Promise<
-    LoadVideosMetadataSuccessResult | LoadVideosMetadataFailureResult
-  >
 
   export type SortByVideosMetadataUploadDateDTO = {
     videosFileNames: Array<string>
@@ -104,7 +100,7 @@ export class VideosService {
   async deleteVideoSegments(videoSegmentsDirectory: string): Promise<void> {
     const videoSegmentsDirectoryAcessibility = await checkPathAccessibility(videoSegmentsDirectory)
     if (videoSegmentsDirectoryAcessibility === 'UNACCESSIBLE') {
-      throw new Error(
+      throw new UsageError(
         `Video segments directory "${videoSegmentsDirectory}" isn't accessible; check its permissions and try again`
       )
     }
@@ -131,7 +127,7 @@ export class VideosService {
     const videoSegmentsDirectoryAccessibility = await checkPathAccessibility(videoSegmentsDirectory)
 
     if (videoSegmentsDirectoryAccessibility === 'UNACCESSIBLE') {
-      throw new Error(
+      throw new UsageError(
         `Video segments directory "${videoSegmentsDirectory}" isn't accessible; check its permissions and try again`
       )
     }
@@ -227,30 +223,30 @@ export class VideosService {
     const [widthString, heightString, durationInSecondsString] = ffprobeOutput.trim().split('\n')
 
     if (!widthString) {
-      throw new Error(`Unexpected missing width of file "${videoFilePath}"`)
+      throw new ImplementationError(`Unexpected missing width of file "${videoFilePath}"`)
     }
 
     if (!heightString) {
-      throw new Error(`Unexpected missing height of file "${videoFilePath}"`)
+      throw new ImplementationError(`Unexpected missing height of file "${videoFilePath}"`)
     }
 
     if (!durationInSecondsString) {
-      throw new Error(`Unexpected missing duration of file "${videoFilePath}"`)
+      throw new ImplementationError(`Unexpected missing duration of file "${videoFilePath}"`)
     }
 
     const width = Number.parseInt(widthString, 10)
     if (!Number.isFinite(width)) {
-      throw new Error(`Unexpected infinite width of file "${videoFilePath}"`)
+      throw new ImplementationError(`Unexpected infinite width of file "${videoFilePath}"`)
     }
 
     const height = Number.parseInt(heightString, 10)
     if (!Number.isFinite(height)) {
-      throw new Error(`Unexpected infinite height of file "${videoFilePath}"`)
+      throw new ImplementationError(`Unexpected infinite height of file "${videoFilePath}"`)
     }
 
     const durationInSeconds = Number.parseFloat(durationInSecondsString)
     if (!Number.isFinite(durationInSeconds)) {
-      throw new Error(`Unexpected infinite duration of file "${videoFilePath}"`)
+      throw new ImplementationError(`Unexpected infinite duration of file "${videoFilePath}"`)
     }
 
     return {
@@ -278,11 +274,11 @@ export class VideosService {
   ): Promise<VideosService.ListVideosFileNamesResult> {
     const videosDirectoryStatus = await checkPathAccessibility(videosDirectory)
     if (videosDirectoryStatus === 'INEXISTENT') {
-      throw new Error(`Videos directory "${videosDirectory}" doesn't exist`)
+      throw new UsageError(`Videos directory "${videosDirectory}" doesn't exist`)
     }
 
     if (videosDirectoryStatus === 'UNACCESSIBLE') {
-      throw new Error(
+      throw new UsageError(
         `Videos directory "${videosDirectory}" isn't accessible; check its permissions and try again`
       )
     }
@@ -313,17 +309,17 @@ export class VideosService {
     return segmentsFileNames
   }
 
-  async loadVideosMetadata(videosDirectory: string): VideosService.LoadVideosMetadataResult {
+  async loadVideosMetadata(videosDirectory: string): Promise<VideosMetadata> {
     // Hard-coded "videos.json" since there is no option to customize that in the present moment
     const metadataPath = path.join(videosDirectory, 'videos.json')
 
     const metadataAccessibility = await checkPathAccessibility(metadataPath)
     if (metadataAccessibility === 'INEXISTENT') {
-      return [[], null]
+      return []
     }
 
     if (metadataAccessibility === 'UNACCESSIBLE') {
-      return [null, new Error(`Videos metadata path "${metadataPath}" isn't accessible`)]
+      throw new UsageError(`Videos metadata path "${metadataPath}" isn't accessible`)
     }
 
     const metadataBuffer = await fs.readFile(metadataPath)
@@ -333,13 +329,13 @@ export class VideosService {
     if (!metadataValidationResult.success) {
       const [issue] = metadataValidationResult.error.issues
       if (!issue) {
-        throw new Error('Unexpected videosMetadataSchema validation error')
+        throw new ImplementationError('Unexpected videosMetadataSchema validation error')
       }
 
-      return [null, new Error(issue.message)]
+      throw new UsageError(issue.message)
     }
 
-    return [metadataValidationResult.data, null]
+    return metadataValidationResult.data
   }
 
   removeYtDlpIdFromFileName(fileName: string): string {

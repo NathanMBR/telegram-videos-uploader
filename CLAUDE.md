@@ -70,7 +70,7 @@ Optional per-directory file describing each video (title, url, availability, upl
 - Biome formatting: single quotes, no semicolons, 2-space indent, 100-col width, no trailing commas. `noFloatingPromises` is an error and `noConsole`/`useAwait` are warnings — use the `logger`/`stepsLogger` (pino), not `console`.
 - TS strict mode plus `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` — array/record access is `T | undefined`, so destructured `[first]` must be null-checked (this pattern is everywhere).
 - Enums are `as const` string-tuple arrays with an inferred union type and a `default*` constant; DB enums (`UPLOADED`, `MEMBERS_ONLY`, …) are uppercase, yt-dlp/external values lowercase, mapped in the repository/service transform methods.
-- Method parameter/return types belong to the class they serve. `TelegramService` declares them in an `export namespace TelegramService` merged with the class, so they are referenced as `TelegramService.Constructor`, `TelegramService.UploadVideoToChannelDTO`, `TelegramService.GetChatDataReturn` (the `*Return` types are the whole `Promise<…>`, unwrapped with `Awaited<…>` when annotating the value). `VideosService` still uses the older top-level `*DTO` exports — prefer the namespace form in new code.
+- Method parameter/return types belong to the class they serve. `TelegramService` declares them in an `export namespace TelegramService` merged with the class, so they are referenced as `TelegramService.Constructor`, `TelegramService.UploadVideoToChannelDTO`, `TelegramService.GetChatDataReturn`. `VideosService` still uses the older top-level `*DTO` exports — prefer the namespace form in new code.
 
 ## Documentation / example files
 

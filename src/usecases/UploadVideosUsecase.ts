@@ -3,6 +3,7 @@ import path from 'node:path'
 import { args, logger, stepsLogger } from '@/config'
 import type { Video } from '@/db'
 import { type Preset, Usecase } from '@/domain'
+import { ImplementationError, UsageError } from '@/errors'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import {
   type CLIConfirmContract,
@@ -42,17 +43,15 @@ export class UploadVideosUsecase extends Usecase {
 
     const isApiAvailable = await this.telegramService.runHealthCheck()
     if (!isApiAvailable) {
-      throw new Error(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
+      throw new UsageError(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
     }
 
-    const [videosMetadata, videosMetadataError] =
-      await this.videosService.loadVideosMetadata(videosDirectory)
+    const videosMetadata = await this.videosService.loadVideosMetadata(videosDirectory)
 
     const listVideosFileNamesResponse =
       await this.videosService.listVideosFileNames(videosDirectory)
 
-    let { videosFileNames } = listVideosFileNamesResponse
-    const { videosFileNamesForConversion } = listVideosFileNamesResponse
+    const { videosFileNamesForConversion, videosFileNames } = listVideosFileNamesResponse
     if (videosFileNames.length <= 0 && videosFileNamesForConversion.length <= 0) {
       logger.warn(`No files found at directory "${videosDirectory}"`)
       return 'OK'
@@ -81,28 +80,21 @@ export class UploadVideosUsecase extends Usecase {
           convertedVideosFileNames.push(videoFileName)
         }
 
-        videosFileNames = [...videosFileNames, ...convertedVideosFileNames]
+        videosFileNames.push(...convertedVideosFileNames)
       }
     }
 
-    let shouldAskProceed = false
+    const shouldAskProceed =
+      videosMetadata.length <= 0 || videosFileNames.length !== videosMetadata.length
 
-    if (videosMetadataError) {
-      logger.warn(
-        `Could not load the content of the "videos.json" file. Reason: ${videosMetadataError.message}`
-      )
+    if (videosMetadata.length <= 0) {
+      logger.warn('File "videos.json" is empty')
+    }
 
-      shouldAskProceed = true
-    } else if (videosMetadata.length <= 0) {
-      logger.warn('File "videos.json" not found, inaccessible or empty')
-
-      shouldAskProceed = true
-    } else if (videosFileNames.length !== videosMetadata.length) {
+    if (videosFileNames.length !== videosMetadata.length) {
       logger.warn(
         `Amount of files in provided directory (${videosFileNames.length}) doesn't match the amount of entries in "videos.json" (${videosMetadata.length})`
       )
-
-      shouldAskProceed = true
     }
 
     if (shouldAskProceed) {
@@ -197,7 +189,7 @@ export class UploadVideosUsecase extends Usecase {
         )
       } else {
         if (!videoCoverPath) {
-          throw new Error('Unexpected undefined videoCoverPath')
+          throw new ImplementationError('Unexpected undefined videoCoverPath')
         }
 
         stepsLogger.info('Cover image found!\n')

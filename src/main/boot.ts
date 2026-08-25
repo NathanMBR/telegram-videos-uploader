@@ -12,14 +12,7 @@ export const boot = async () => {
   const cliService = new InquirerCLIService()
   const presetsService = new PresetService()
 
-  const [presets, presetsError] = await presetsService.getAllPresets(args.presetsPath)
-  if (!presets) {
-    throw new Error(presetsError.message)
-  }
-
-  if (presets.length <= 0) {
-    throw new Error('Presets are empty. At least one preset is required to run.')
-  }
+  const presets = await presetsService.getAllPresets(args.presetsPath)
 
   const chosenPreset = await cliService.select({
     message: 'Select the preset you want:',

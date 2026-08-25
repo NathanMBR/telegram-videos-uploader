@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises'
 
+import { ImplementationError } from '@/errors'
+
 export type CheckPathAccessibilityResult = 'INEXISTENT' | 'UNACCESSIBLE' | 'OK'
 
 export const checkPathAccessibility = async (
@@ -11,7 +13,9 @@ export const checkPathAccessibility = async (
 
     return 'OK'
   } catch (error: unknown) {
-    const checkPathAccessibilityUnknownError = new Error('Unexpected checkPathAccessibility error')
+    const checkPathAccessibilityUnknownError = new ImplementationError(
+      'Unexpected checkPathAccessibility error'
+    )
 
     if (!error) {
       throw checkPathAccessibilityUnknownError

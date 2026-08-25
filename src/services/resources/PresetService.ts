@@ -1,20 +1,19 @@
 import fs from 'node:fs/promises'
 
 import { type Presets, presetsSchema } from '@/domain'
+import { ImplementationError, UsageError } from '@/errors'
 import { checkPathAccessibility } from '@/utils'
 
-type LoadPresetsSuccessResult = [Presets, null]
-type LoadPresetsFailureResult = [null, Error]
-export type LoadPresetsResult = Promise<LoadPresetsSuccessResult | LoadPresetsFailureResult>
+export type LoadPresetsResult = Promise<Presets>
 export class PresetService {
-  async getAllPresets(presetsPath: string) {
+  async getAllPresets(presetsPath: string): LoadPresetsResult {
     const presetsAccessibility = await checkPathAccessibility(presetsPath)
     if (presetsAccessibility === 'INEXISTENT') {
-      return [null, new Error(`Presets file at "${presetsPath}" not found`)] as const
+      throw new UsageError(`Presets file at "${presetsPath}" not found`)
     }
 
     if (presetsAccessibility === 'UNACCESSIBLE') {
-      return [null, new Error(`Presets path "${presetsPath}" isn't accessible`)] as const
+      throw new UsageError(`Presets file at "${presetsPath}" isn't accessible`)
     }
 
     const jsonDataBuffer = await fs.readFile(presetsPath)
@@ -25,12 +24,18 @@ export class PresetService {
     if (!presetsValidationResult.success) {
       const [issue] = presetsValidationResult.error.issues
       if (!issue) {
-        throw new Error('Unexpected presetsSchema validation error')
+        throw new ImplementationError('Unexpected presetsSchema validation error')
       }
 
-      return [null, new Error(issue.message)] as const
+      throw new UsageError(issue.message)
     }
 
-    return [presetsValidationResult.data, null] as const
+    if (presetsValidationResult.data.length <= 0) {
+      throw new UsageError(
+        `Presets file at "${presetsPath}" is empty (at least one preset is required)`
+      )
+    }
+
+    return presetsValidationResult.data
   }
 }

@@ -9,6 +9,7 @@ import {
   type PostDescriptionAvailabilities,
   type PostDescriptionDateFormats
 } from '@/domain'
+import { ImplementationError, UsageError } from '@/errors'
 import { execFile } from '@/utils'
 
 import type { TelegramAPI } from '../data'
@@ -29,17 +30,17 @@ export namespace TelegramService {
     durationInSeconds: number
   }
 
-  export type GetChatDataReturn = Promise<{
+  export type GetChatDataReturn = {
     title: string
     type: string
     description: string | null
-  }>
+  }
 
-  export type GetSelfDataReturn = Promise<{
+  export type GetSelfDataReturn = {
     firstName: string
     lastName: string | null
     username: string
-  }>
+  }
 
   export type GetPostDescriptionDTO = {
     baseText: string
@@ -76,10 +77,10 @@ export namespace TelegramService {
     videoThumbnailPath?: string | undefined
   }
 
-  export type UploadVideoToChannelReturn = Promise<{
+  export type UploadVideoToChannelReturn = {
     messageId: number
     uploadedAt: Date
-  }>
+  }
 }
 
 export class TelegramService {
@@ -132,7 +133,7 @@ export class TelegramService {
       (await deleteMessageFetchResponse.json()) as TelegramAPI.DeleteMessageResponse
 
     if (!deleteMessageResponse.ok) {
-      throw new Error(
+      throw new UsageError(
         `Telegram error while deleting Telegram message with ID ${dto.messageId}: ${deleteMessageResponse.description}`
       )
     }
@@ -161,7 +162,7 @@ export class TelegramService {
       (await deleteMessagesFetchResponse.json()) as TelegramAPI.DeleteMessagesResponse
 
     if (!deleteMessagesResponse.ok) {
-      throw new Error(
+      throw new UsageError(
         `Telegram error while deleting Telegram messages with IDs: ${dto.messagesIds.join(' ')} --> ${deleteMessagesResponse.description}`
       )
     }
@@ -229,22 +230,18 @@ export class TelegramService {
     return postDescription
   }
 
-  async getChatData(chatId: string): TelegramService.GetChatDataReturn {
+  async getChatData(chatId: string): Promise<TelegramService.GetChatDataReturn> {
     const getChatUrl = new URL(`/bot${this.settings.botToken}/getChat`, this.settings.apiBaseUrl)
 
     getChatUrl.searchParams.append('chat_id', chatId)
 
     const getChatFetchResponse = await fetch(getChatUrl)
-    if (!getChatFetchResponse.ok) {
-      throw new Error(`Unable to fetch "/getChat" Telegram API for ID "${chatId}"`)
-    }
-
     const getChatResponse = (await getChatFetchResponse.json()) as TelegramAPI.GetChatResponse
     if (!getChatResponse.ok) {
-      throw new Error(getChatResponse.description)
+      throw new UsageError(getChatResponse.description)
     }
 
-    const chatData: Awaited<TelegramService.GetChatDataReturn> = {
+    const chatData: TelegramService.GetChatDataReturn = {
       title: String(getChatResponse.result.title),
       type: String(getChatResponse.result.type),
       description: getChatResponse.result.description
@@ -255,20 +252,16 @@ export class TelegramService {
     return chatData
   }
 
-  async getSelfData(): TelegramService.GetSelfDataReturn {
+  async getSelfData(): Promise<TelegramService.GetSelfDataReturn> {
     const getMeUrl = new URL(`/bot${this.settings.botToken}/getMe`, this.settings.apiBaseUrl)
 
     const getMeFetchResponse = await fetch(getMeUrl)
-    if (!getMeFetchResponse.ok) {
-      throw new Error('Unable to fetch "/getMe" Telegram API')
-    }
-
     const getMeResponse = (await getMeFetchResponse.json()) as TelegramAPI.GetMeResponse
     if (!getMeResponse.ok) {
-      throw new Error(getMeResponse.description)
+      throw new UsageError(getMeResponse.description)
     }
 
-    const selfData: Awaited<TelegramService.GetSelfDataReturn> = {
+    const selfData: TelegramService.GetSelfDataReturn = {
       firstName: getMeResponse.result.first_name,
       lastName: getMeResponse.result.last_name || null,
       username: getMeResponse.result.username
@@ -346,7 +339,7 @@ export class TelegramService {
 
   async uploadVideoToChannel(
     dto: TelegramService.UploadVideoToChannelDTO
-  ): TelegramService.UploadVideoToChannelReturn {
+  ): Promise<TelegramService.UploadVideoToChannelReturn> {
     const {
       channelId,
       videoPath,
@@ -404,12 +397,12 @@ export class TelegramService {
 
     const sendVideoResponse = (await sendVideoFetchResponse.json()) as TelegramAPI.SendVideoResponse
     if (!sendVideoResponse.ok) {
-      throw new Error(JSON.stringify(sendVideoResponse, null, 2))
+      throw new UsageError(sendVideoResponse.description)
     }
 
     const uploadedAt = new Date(sendVideoResponse.result.date * 1_000)
     if (Number.isNaN(uploadedAt.getTime())) {
-      throw new Error('Invalid date returned from Telegram post')
+      throw new ImplementationError('Invalid date returned from Telegram post')
     }
 
     return {

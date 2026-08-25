@@ -1,6 +1,7 @@
 import { and, asc, eq, like, or } from 'drizzle-orm'
 
 import { DrizzleConnection, type Video, videosTable } from '@/db'
+import { ImplementationError } from '@/errors'
 
 export class VideosRepository {
   private readonly drizzle = DrizzleConnection.instance
@@ -43,7 +44,9 @@ export class VideosRepository {
   async save(videoDto: Video.New): Promise<Video> {
     const [video] = await this.drizzle.insert(videosTable).values(videoDto).returning()
     if (!video) {
-      throw new Error(`Unable to save Video with filename "${videoDto.filename}" in the database`)
+      throw new ImplementationError(
+        `Unable to save Video with filename "${videoDto.filename}" in the database`
+      )
     }
 
     return video

@@ -1,29 +1,9 @@
-import { logger } from '@/config'
+import { handleError } from '@/errors'
 import { boot } from '@/main'
 
-const main = async (): Promise<number> => {
-  try {
-    await boot()
-
-    return 0
-  } catch (error: unknown) {
-    if (error instanceof Error && error.name === 'ExitPromptError') {
-      return 0
-    }
-
-    logger.fatal(error)
-
-    return 1
-  }
-}
-
-main()
-  .then(exitCode => {
+boot()
+  .catch((error: unknown) => {
+    const exitCode = handleError(error)
     process.exitCode = exitCode
-  })
-  .catch(error => {
-    process.exitCode = 1
-
-    logger.fatal(error)
   })
   .finally(process.exit)
