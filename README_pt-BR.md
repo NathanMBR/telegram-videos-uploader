@@ -169,7 +169,7 @@ Tabela com as flags disponíveis:
 | Flag | Atalho | Tipo | Padrão | Descrição |
 |---|---|---|---|---|
 | `--presetsPath` | `-p` | Texto | `presets.json` no diretório onde o comando é rodado | Caminho do arquivo `presets.json` |
-| `--dryRun` | `-d` | Booleano | `false` | Roda a ação de upload sem converter arquivos, persistir informações no banco de dados ou fazer o upload de vídeos |
+| `--dryRun` | `-d` | Booleano | `false` | Roda as ações sem converter arquivos, persistir informações no banco de dados ou enviar qualquer alteração para o canal do Telegram |
 
 ### Como funciona
 O código lê o conteúdo do arquivo `presets.json` presente na raiz do projeto para obter suas configurações. A partir daí, pede primeiramente ao usuário para selecionar um dos presets providos pelo arquivo. Logo após a seleção, conecta-se ao banco de dados definido na propriedade `databaseUrl` do preset e aplica as migrations pendentes automaticamente (criando o arquivo do banco de dados caso ele ainda não exista), e depois pede para selecionar uma ação.
@@ -178,17 +178,19 @@ As ações disponíveis são:
 
 - **Trocar preset:** volta para a seleção de presets. O arquivo `presets.json` é lido novamente, a conexão com o banco de dados do preset atual é fechada, e o banco de dados do preset recém-escolhido é conectado e migrado, assim como na inicialização. É a primeira opção do menu.
 
+- **Checagem dos dados do preset:** não faz nenhum upload. Imprime as principais configurações do preset escolhido (nome, origem, banco de dados, diretório de vídeos, nome do canal, URL do canal e formato de data) e depois consulta a `Bot API` do Telegram para imprimir os dados do canal (título e descrição) e do bot (nome e nome de usuário) para os quais o preset realmente aponta. É útil para confirmar que o token do bot, o ID do canal e a URL da API estão corretos antes de iniciar um upload.
+
 - **Upload de vídeos:** lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Caso o diretório também possua vídeos em um formato que precise de conversão, é perguntado se você deseja convertê-los para `.mp4` primeiro (a resposta padrão é sim), e os vídeos convertidos participam da mesma execução. Então, o vídeo é dividido em segmentos menores que (ou iguais a) 1.75GB de tamanho, a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
 
-- **Checagem dos dados do preset:** não faz nenhum upload. Imprime as principais configurações do preset escolhido (nome, origem, banco de dados, diretório de vídeos, nome do canal, URL do canal e formato de data) e depois consulta a `Bot API` do Telegram para imprimir os dados do canal (título e descrição) e do bot (nome e nome de usuário) para os quais o preset realmente aponta. É útil para confirmar que o token do bot, o ID do canal e a URL da API estão corretos antes de iniciar um upload.
+- **Editar informações do vídeo:** exibe uma lista pesquisável dos vídeos registrados para o preset escolhido — a busca filtra por nome de arquivo, título e descrição — e depois pergunta qual propriedade você deseja editar: título, descrição, disponibilidade ou data de publicação. Os campos de título e descrição já vêm preenchidos com o valor atual, a disponibilidade é escolhida dentre os estados definidos no preset, e a data de publicação deve ser digitada no formato `YYYY-MM-DD`. Após salvar, a ferramenta reescreve a descrição de todas as postagens já enviadas daquele vídeo no canal do Telegram. Escolher "Cancel edit" volta ao menu de ações sem alterar nada.
 
 - **Deletar vídeo:** exibe uma lista pesquisável dos vídeos já registrados pela ferramenta — a busca filtra por nome de arquivo, título e descrição — e deleta o selecionado após uma confirmação. Responder "não" à confirmação cancela a operação e nada é deletado.
 
 - **Sair:** encerra o programa. É a última opção do menu.
 
-Ao terminar, uma ação encerra o programa — a não ser que ela devolva você ao menu de ações. Isso acontece quando você recusa a confirmação `Proceed?` da ação de upload, quando recusa a confirmação de exclusão da ação de deletar, e quando responde que sim à pergunta `Return to menu?` que a ação de checagem dos dados do preset faz após imprimir tudo (sim é a resposta padrão). Para encerrar a partir do próprio menu, utilize a opção **Sair**.
+Ao terminar, uma ação encerra o programa — a não ser que ela devolva você ao menu de ações. Isso acontece quando você recusa a confirmação `Proceed?` da ação de upload, quando escolhe a opção `Cancel edit` da ação de edição, quando recusa a confirmação de exclusão da ação de deletar, e quando responde que sim à pergunta `Return to menu?` que a ação de checagem dos dados do preset faz após imprimir tudo (sim é a resposta padrão). Para encerrar a partir do próprio menu, utilize a opção **Sair**.
 
-Quando a flag `--dryRun` (`-d`) é informada, a ação de upload não converte nenhum arquivo, não persiste dados no banco de dados e não faz o upload de nenhum vídeo. As perguntas continuam sendo feitas.
+Quando a flag `--dryRun` (`-d`) é informada, a ação de upload não converte nenhum arquivo, não persiste dados no banco de dados e não faz o upload de nenhum vídeo; as perguntas dela continuam sendo feitas. A ação de edição continua perguntando qual vídeo e qual propriedade você deseja editar, mas para por aí: não pede o novo valor, não salva nada no banco de dados e não reescreve nenhuma postagem.
 
 ### Sobre o arquivo `videos.json`
 O arquivo `videos.json` define as informações do vídeo que serão utilizadas para a postagem do mesmo no canal do Telegram, como título, URL, dentre outras. Ele deve sempre ser salvo com esse nome, no mesmo diretório que foi informado no preset que você estiver utilizando. O formato dele é de um array de objetos contendo as seguintes propriedades:

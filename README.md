@@ -169,7 +169,7 @@ Table with the available flags:
 | Flag | Short | Type | Default | Description |
 |---|---|---|---|---|
 | `--presetsPath` | `-p` | Text | `presets.json` in the directory where the command is run | Path to the `presets.json` file |
-| `--dryRun` | `-d` | Boolean | `false` | Runs the upload action without converting files, persisting data to the database or uploading videos |
+| `--dryRun` | `-d` | Boolean | `false` | Runs the actions without converting files, persisting data to the database or sending any change to the Telegram channel |
 
 ### How it works
 The code reads the contents of the `presets.json` file in the project's root directory to obtain its settings. From there, it first asks the user to select one of the presets provided by the file. Right after the selection, it connects to the database defined in the preset's `databaseUrl` property and applies the pending migrations automatically (creating the database file if it doesn't exist yet), and then asks the user to select an action.
@@ -178,17 +178,19 @@ The available actions are:
 
 - **Change preset:** returns to the preset selection. The `presets.json` file is read again, the connection to the current preset's database is closed, and the newly chosen preset's database is connected and migrated, just like on startup. It's the first option in the menu.
 
+- **Check preset data:** doesn't upload anything. It prints the main settings of the chosen preset (name, origin, database, videos directory, channel name, channel URL and date format) and then queries the Telegram `Bot API` to print the data of the channel (title and description) and of the bot (name and username) that the preset actually points to. It's useful to confirm that the bot token, the channel ID and the API URL are correct before starting an upload.
+
 - **Upload videos:** reads the video data from the `videos.json` file inside the preset's videos directory (if it exists) to use as a reference. If the directory also holds videos in a format that needs conversion, it asks whether to convert them to `.mp4` first (the default answer is yes), and the converted videos take part in the same run. Then, the video is split into segments smaller than (or equal to) 1.75GB in size, the _cover image_ is converted into a _thumbnail_ if it already exists or extracted from the video itself otherwise, and the video is uploaded to the Telegram channel.
 
-- **Check preset data:** doesn't upload anything. It prints the main settings of the chosen preset (name, origin, database, videos directory, channel name, channel URL and date format) and then queries the Telegram `Bot API` to print the data of the channel (title and description) and of the bot (name and username) that the preset actually points to. It's useful to confirm that the bot token, the channel ID and the API URL are correct before starting an upload.
+- **Edit video info:** shows a searchable list of the videos registered for the chosen preset — typing filters by filename, title and description — and then asks which property to edit: title, description, availability or publication date. The title and description prompts come prefilled with the current value, the availability is chosen from the states defined in the preset, and the publication date must be typed in the `YYYY-MM-DD` format. After saving, the tool rewrites the description of every post already uploaded for that video in the Telegram channel. Choosing "Cancel edit" returns to the action menu without changing anything.
 
 - **Delete video:** shows a searchable list of the videos the tool has already registered — typing filters by filename, title and description — and deletes the selected one after a confirmation prompt. Answering "no" to the confirmation cancels the operation and nothing is deleted.
 
 - **Exit:** ends the program. It's the last option in the menu.
 
-Once an action finishes, the program ends — unless it sends you back to the action menu. That happens when you decline the `Proceed?` confirmation of the upload action, when you decline the deletion confirmation of the delete action, and when you answer yes to the `Return to menu?` question that the preset data action asks after printing everything (yes is the default). To leave from the menu itself, use the **Exit** option.
+Once an action finishes, the program ends — unless it sends you back to the action menu. That happens when you decline the `Proceed?` confirmation of the upload action, when you choose the `Cancel edit` option of the edit action, when you decline the deletion confirmation of the delete action, and when you answer yes to the `Return to menu?` question that the preset data action asks after printing everything (yes is the default). To leave from the menu itself, use the **Exit** option.
 
-When the `--dryRun` (`-d`) flag is provided, the upload action doesn't convert any file, persist data to the database or upload any video. The questions are still asked.
+When the `--dryRun` (`-d`) flag is provided, the upload action doesn't convert any file, persist data to the database or upload any video; its questions are still asked. The edit action still asks which video and which property you want to edit, but stops there: it doesn't ask for the new value, doesn't save anything to the database and doesn't rewrite any post.
 
 ### About the `videos.json` file
 The `videos.json` file defines the video information that will be used to post it to the Telegram channel, such as title, URL, among others. It must always be saved with this name, in the same directory specified in the preset you are using. Its format is an array of objects containing the following properties:
