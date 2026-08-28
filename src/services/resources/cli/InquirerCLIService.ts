@@ -1,15 +1,22 @@
 import * as cli from '@inquirer/prompts'
 
+import { stepsLogger } from '@/config'
 import { ImplementationError, UserExitError } from '@/errors'
 import type {
   CLIAutocompleteContract,
   CLIConfirmContract,
   CLIInputContract,
+  CLIPrintContract,
   CLISelectContract
 } from '@/services'
 
 export class InquirerCLIService
-  implements CLIAutocompleteContract, CLIConfirmContract, CLISelectContract, CLIInputContract
+  implements
+    CLIAutocompleteContract,
+    CLIConfirmContract,
+    CLIPrintContract,
+    CLISelectContract,
+    CLIInputContract
 {
   private handleInquirerError(error: unknown): Error {
     if (error instanceof Error) {
@@ -58,22 +65,6 @@ export class InquirerCLIService
     }
   }
 
-  async select<T>(request: CLISelectContract.Request<T>): Promise<CLISelectContract.Response<T>> {
-    try {
-      const { message, options } = request
-
-      const result = await cli.select({
-        message,
-        choices: options.map(option => ({ name: option.label, value: option.value })),
-        pageSize: 15
-      })
-
-      return result
-    } catch (error: unknown) {
-      throw this.handleInquirerError(error)
-    }
-  }
-
   async input(request: CLIInputContract.Request): Promise<CLIInputContract.Response> {
     try {
       const { message, validator, isOptional, default: defaultValue } = request
@@ -95,6 +86,28 @@ export class InquirerCLIService
 
           return validationResult
         }
+      })
+
+      return result
+    } catch (error: unknown) {
+      throw this.handleInquirerError(error)
+    }
+  }
+
+  public print(...request: CLIPrintContract.Request): CLIPrintContract.Response {
+    const message = request.join('\n')
+
+    stepsLogger.info(message)
+  }
+
+  async select<T>(request: CLISelectContract.Request<T>): Promise<CLISelectContract.Response<T>> {
+    try {
+      const { message, options } = request
+
+      const result = await cli.select({
+        message,
+        choices: options.map(option => ({ name: option.label, value: option.value })),
+        pageSize: 15
       })
 
       return result

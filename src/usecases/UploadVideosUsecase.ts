@@ -1,12 +1,13 @@
 import path from 'node:path'
 
-import { args, logger, stepsLogger } from '@/config'
+import { args, logger } from '@/config'
 import type { Video } from '@/db'
 import { type Preset, Usecase, VideoMetadata } from '@/domain'
 import { ImplementationError, UsageError } from '@/errors'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import {
   type CLIConfirmContract,
+  type CLIPrintContract,
   InquirerCLIService,
   TelegramService,
   VideosService
@@ -18,7 +19,7 @@ export class UploadVideosUsecase extends Usecase {
 
   public readonly telegramService: TelegramService
   public readonly videosService: VideosService
-  public readonly cliService: CLIConfirmContract
+  public readonly cliService: CLIConfirmContract & CLIPrintContract
 
   public readonly videosRepository: VideosRepository
   public readonly videoUploadsRepository: VideoUploadsRepository
@@ -67,7 +68,7 @@ export class UploadVideosUsecase extends Usecase {
         const convertedVideosFileNames: Array<string> = []
 
         for (const videoFileName of videosFileNamesForConversion) {
-          stepsLogger.info(`Converting file "${videoFileName}"...`)
+          this.cliService.print(`Converting file "${videoFileName}"...`)
 
           const videoPath = path.join(videosDirectory, videoFileName)
 
@@ -122,26 +123,26 @@ export class UploadVideosUsecase extends Usecase {
       const logFinalStep = String(videosFileNames.length).padStart(logPadLength, '0')
       const logStepIndicator = `[${logCurrentStep}/${logFinalStep}]`
 
-      stepsLogger.info(`\n${getSeparator(logStepIndicator, 5, 'EACH SIDE')}`)
-      stepsLogger.info(`Looking for saved video with filename "${videoFileName}"...`)
+      this.cliService.print(`\n${getSeparator(logStepIndicator, 5, 'EACH SIDE')}`)
+      this.cliService.print(`Looking for saved video with filename "${videoFileName}"...`)
 
       let video = await this.videosRepository.getByFilename(videoFileName)
       if (video) {
-        stepsLogger.info('Found!\n')
+        this.cliService.print('Found!\n')
 
         if (args.dryRun) {
           this.printDryRunMessage()
           continue
         }
       } else {
-        stepsLogger.info('Not found.\n')
+        this.cliService.print('Not found.\n')
 
         if (args.dryRun) {
           this.printDryRunMessage()
           continue
         }
 
-        stepsLogger.info('Saving into database...')
+        this.cliService.print('Saving into database...')
 
         const videoMetadata = videosMetadata?.find(
           metadata => path.parse(metadata.filename).name === videoFileNameWithoutExtension
@@ -165,24 +166,24 @@ export class UploadVideosUsecase extends Usecase {
 
         video = await this.videosRepository.save(videoData)
 
-        stepsLogger.info('Saved!\n')
+        this.cliService.print('Saved!\n')
       }
 
       if (video.status === 'UPLOADED') {
-        stepsLogger.info('Video already uploaded! Skipping...\n')
+        this.cliService.print('Video already uploaded! Skipping...\n')
         continue
       }
 
       const videoFileMetadata = await this.videosService.getVideoFileMetadata(videoFilePath)
 
-      stepsLogger.info('Searching for cover image...')
+      this.cliService.print('Searching for cover image...')
 
       let videoThumbnailPath: string | undefined
       let videoCoverPath = await this.videosService.getVideoCoverPath(videoFilePath)
 
       const needsToExtractCover = !videoCoverPath
       if (needsToExtractCover) {
-        stepsLogger.info(
+        this.cliService.print(
           'Cover image not found. It will be extracted from the video file itself.\n'
         )
       } else {
@@ -190,12 +191,12 @@ export class UploadVideosUsecase extends Usecase {
           throw new ImplementationError('Unexpected undefined videoCoverPath')
         }
 
-        stepsLogger.info('Cover image found!\n')
-        stepsLogger.info('Generating thumbnail...')
+        this.cliService.print('Cover image found!\n')
+        this.cliService.print('Generating thumbnail...')
 
         videoThumbnailPath = await this.videosService.convertVideoCoverToThumbnail(videoCoverPath)
 
-        stepsLogger.info('Thumbnail generated!\n')
+        this.cliService.print('Thumbnail generated!\n')
       }
 
       const videoSegmentsDirectory = this.videosService.getVideoSegmentsDirectory({
@@ -205,7 +206,7 @@ export class UploadVideosUsecase extends Usecase {
 
       await this.videosService.deleteVideoSegments(videoSegmentsDirectory)
 
-      stepsLogger.info('Segmenting...')
+      this.cliService.print('Segmenting...')
 
       await this.videosService.generateVideoSegments({
         videoFilePath,
@@ -216,7 +217,7 @@ export class UploadVideosUsecase extends Usecase {
       const videoSegmentsFileNames =
         await this.videosService.listVideoSegmentsFileNames(videoSegmentsDirectory)
 
-      stepsLogger.info('Segmentation done!\n')
+      this.cliService.print('Segmentation done!\n')
 
       for (const [videoSegmentIndex, videoSegmentFileName] of videoSegmentsFileNames.entries()) {
         const partCurrent = videoSegmentIndex + 1
@@ -253,7 +254,7 @@ export class UploadVideosUsecase extends Usecase {
           await this.videosService.getVideoFileMetadata(videoSegmentPath)
 
         if (needsToExtractCover) {
-          stepsLogger.info(
+          this.cliService.print(
             `Extracting cover image for video segment ${partCurrentString} of ${partTotalString}...`
           )
 
@@ -262,17 +263,19 @@ export class UploadVideosUsecase extends Usecase {
             durationInSeconds: videoSegmentFileMetadata.durationInSeconds
           })
 
-          stepsLogger.info(`Extracted!\n`)
-          stepsLogger.info(`Generating thumbnail...`)
+          this.cliService.print(`Extracted!\n`)
+          this.cliService.print(`Generating thumbnail...`)
 
           videoThumbnailPath = await this.telegramService.convertVideoCoverToThumbnail({
             videoCoverPath
           })
 
-          stepsLogger.info('Thumbnail generated!\n')
+          this.cliService.print('Thumbnail generated!\n')
         }
 
-        stepsLogger.info(`Uploading video segment ${partCurrentString} of ${partTotalString}...`)
+        this.cliService.print(
+          `Uploading video segment ${partCurrentString} of ${partTotalString}...`
+        )
 
         const telegramPost = await this.telegramService.uploadVideoToChannel({
           channelId: this.preset.telegram.channelId,
@@ -292,17 +295,17 @@ export class UploadVideosUsecase extends Usecase {
           part: partCurrent
         })
 
-        stepsLogger.info(`Video segment uploaded!\n`)
+        this.cliService.print(`Video segment uploaded!\n`)
       }
 
       await this.videosRepository.setUploadedStatusById(video.id)
 
-      stepsLogger.info('All video segments successfully uploaded!')
+      this.cliService.print('All video segments successfully uploaded!')
 
       await this.videosService.deleteVideoSegments(videoSegmentsDirectory)
     }
 
-    stepsLogger.info('All videos successfully uploaded!')
+    this.cliService.print('All videos successfully uploaded!')
 
     return 'OK'
   }

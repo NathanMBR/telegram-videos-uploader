@@ -1,7 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-import { stepsLogger } from '@/config'
 import {
   type VideoFileMetadata,
   VideoMetadata,
@@ -136,8 +135,6 @@ export class VideosService {
     }
 
     if (sizeInBytes <= maxSizePerFileInBytes) {
-      stepsLogger.info('Original file size is under upload limits; using symlink...')
-
       const symlinkName = [videoFileNameWithoutExtension, '_01-01', videoFileExtension].join('')
 
       const symlinkPath = path.join(videoSegmentsDirectory, symlinkName)

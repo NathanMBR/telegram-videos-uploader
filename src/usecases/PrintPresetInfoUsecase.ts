@@ -1,14 +1,18 @@
-import { stepsLogger } from '@/config'
 import { type Preset, Usecase } from '@/domain'
 import { UsageError } from '@/errors'
-import { type CLIConfirmContract, InquirerCLIService, TelegramService } from '@/services'
+import {
+  type CLIConfirmContract,
+  type CLIPrintContract,
+  InquirerCLIService,
+  TelegramService
+} from '@/services'
 import { getSeparator } from '@/utils'
 
 export class PrintPresetInfoUsecase extends Usecase {
   public readonly actionTitle = 'Check preset data'
 
   public readonly telegramService: TelegramService
-  public readonly cliService: CLIConfirmContract
+  public readonly cliService: CLIConfirmContract & CLIPrintContract
 
   constructor(public readonly preset: Preset) {
     super()
@@ -34,27 +38,27 @@ export class PrintPresetInfoUsecase extends Usecase {
     const telegramBotSelfData = await this.telegramService.getSelfData()
 
     // Preset info
-    stepsLogger.info(getSeparator('PRESET'))
-    stepsLogger.info(`Name: ${this.preset.name}`)
-    stepsLogger.info(`Origin: ${this.preset.origin}`)
-    stepsLogger.info(`Database: ${this.preset.databaseUrl}`)
-    stepsLogger.info(`Videos directory: ${this.preset.videosDirectory}`)
-    stepsLogger.info(`Channel name: ${this.preset.postDescription.channel.name}`)
-    stepsLogger.info(`Channel url: ${this.preset.postDescription.channel.url}`)
-    stepsLogger.info(`Date format: ${this.preset.postDescription.dateFormat}`)
+    this.cliService.print(getSeparator('PRESET'))
+    this.cliService.print(`Name: ${this.preset.name}`)
+    this.cliService.print(`Origin: ${this.preset.origin}`)
+    this.cliService.print(`Database: ${this.preset.databaseUrl}`)
+    this.cliService.print(`Videos directory: ${this.preset.videosDirectory}`)
+    this.cliService.print(`Channel name: ${this.preset.postDescription.channel.name}`)
+    this.cliService.print(`Channel url: ${this.preset.postDescription.channel.url}`)
+    this.cliService.print(`Date format: ${this.preset.postDescription.dateFormat}`)
 
     // Telegram info
-    stepsLogger.info(`\n${getSeparator('TELEGRAM')}`)
-    stepsLogger.info(`Channel title: ${telegramChatData.title}`)
+    this.cliService.print(`\n${getSeparator('TELEGRAM')}`)
+    this.cliService.print(`Channel title: ${telegramChatData.title}`)
 
     if (telegramChatData.description) {
-      stepsLogger.info(`Channel description: ${telegramChatData.description}`)
+      this.cliService.print(`Channel description: ${telegramChatData.description}`)
     }
 
-    stepsLogger.info(
+    this.cliService.print(
       `Bot title: ${telegramBotSelfData.firstName} ${telegramBotSelfData.lastName || ''}`
     )
-    stepsLogger.info(`Bot username: @${telegramBotSelfData.username}`)
+    this.cliService.print(`Bot username: @${telegramBotSelfData.username}`)
 
     const shouldGoBack = await this.cliService.confirm({
       message: 'Return to menu?',

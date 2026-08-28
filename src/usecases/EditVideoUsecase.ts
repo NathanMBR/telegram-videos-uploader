@@ -1,9 +1,10 @@
-import { args, stepsLogger } from '@/config'
+import { args } from '@/config'
 import { type Preset, Usecase, VideoMetadata, videoAvailabilities } from '@/domain'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import {
   type CLIAutocompleteContract,
   type CLIInputContract,
+  type CLIPrintContract,
   type CLISelectContract,
   InquirerCLIService,
   TelegramService
@@ -17,7 +18,10 @@ export class EditVideoUsecase extends Usecase {
   private readonly videoUploadsRepository: VideoUploadsRepository
 
   private readonly telegramService: TelegramService
-  private readonly cliService: CLIAutocompleteContract & CLISelectContract & CLIInputContract
+  private readonly cliService: CLIAutocompleteContract &
+    CLISelectContract &
+    CLIInputContract &
+    CLIPrintContract
 
   constructor(public readonly preset: Preset) {
     super()
@@ -192,7 +196,7 @@ export class EditVideoUsecase extends Usecase {
       })
     }
 
-    stepsLogger.info('Successfully updated!')
+    this.cliService.print('Successfully updated!')
 
     return 'OK'
   }
