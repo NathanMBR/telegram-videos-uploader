@@ -15,78 +15,145 @@ import { execFile } from '@/utils'
 import type { TelegramAPI } from '../data'
 
 export namespace TelegramService {
-  export type Constructor = {
-    apiBaseUrl: string
-    botToken: string
+  export namespace Constructor {
+    export type Settings = {
+      apiBaseUrl: string
+      botToken: string
+    }
   }
 
-  export type DeleteMessagesDTO = {
-    channelId: string
-    messagesIds: Array<number>
+  export namespace ConvertVideoCoverToThumbnail {
+    export type DTO = {
+      videoCoverPath: string
+    }
+
+    export type Return = string
   }
 
-  export type ExtractVideoCoverDTO = {
-    videoSegmentPath: string
-    durationInSeconds: number
+  export namespace DeleteMessage {
+    export type DTO = {
+      channelId: string
+      messageId: number
+    }
+
+    export type Return = void
   }
 
-  export type GetChatDataReturn = {
-    title: string
-    type: string
-    description: string | null
+  export namespace DeleteMessages {
+    export type DTO = {
+      channelId: string
+      messagesIds: Array<number>
+    }
+
+    export type Return = void
   }
 
-  export type GetSelfDataReturn = {
-    firstName: string
-    lastName: string | null
-    username: string
+  export namespace ExtractVideoCover {
+    export type DTO = {
+      videoSegmentPath: string
+      durationInSeconds: number
+    }
+
+    export type Return = string
   }
 
-  export type GetPostDescriptionDTO = {
-    baseText: string
-    videoTitle: string
-    videoUrl: string
-    videoDescription: string
-    channelTitle: string
-    channelUrl: string
-    availability: string
-    date: string
-    partCurrent: string
-    partTotal: string
+  export namespace GetChatData {
+    export type DTO = {
+      chatId: string
+    }
+
+    export type Return = {
+      title: string
+      type: string
+      description: string | null
+    }
   }
 
-  export type TransformDbAvailabilityDTO = {
-    presetAvailabilities: PostDescriptionAvailabilities
-    availability: VideoAvailabilities
+  export namespace GetPostDescription {
+    export type DTO = {
+      baseText: string
+      videoTitle: string
+      videoUrl: string
+      videoDescription: string
+      channelTitle: string
+      channelUrl: string
+      availability: string
+      date: string
+      partCurrent: string
+      partTotal: string
+    }
+
+    export type Return = string
   }
 
-  export type TransformDbPublishedAtDTO = {
-    presetAvailabilities: PostDescriptionAvailabilities
-    presetDateFormat: PostDescriptionDateFormats
-    publishedAt: Date | null
+  export namespace GetSelfData {
+    export type Return = {
+      firstName: string
+      lastName: string | null
+      username: string
+    }
   }
 
-  export type UploadVideoToChannelDTO = {
-    channelId: string
-    videoPath: string
-    width: number
-    height: number
-    durationInSeconds: number
-    postDescription: string
-    videoCoverPath?: string | undefined
-    videoThumbnailPath?: string | undefined
+  export namespace RunHealthCheck {
+    export type Return = boolean
   }
 
-  export type UploadVideoToChannelReturn = {
-    messageId: number
-    uploadedAt: Date
+  export namespace TransformDbAvailability {
+    export type DTO = {
+      presetAvailabilities: PostDescriptionAvailabilities
+      availability: VideoAvailabilities
+    }
+
+    export type Return = string
+  }
+
+  export namespace TransformDbPublishedAt {
+    export type DTO = {
+      presetAvailabilities: PostDescriptionAvailabilities
+      presetDateFormat: PostDescriptionDateFormats
+      publishedAt: Date | null
+    }
+
+    export type Return = string
+  }
+
+  export namespace UpdateMessage {
+    export type DTO = {
+      chatId: string
+      messageId: number
+      message: string
+    }
+
+    export type Return = void
+  }
+
+  export namespace UploadVideoToChannel {
+    export type DTO = {
+      channelId: string
+      videoPath: string
+      width: number
+      height: number
+      durationInSeconds: number
+      postDescription: string
+      videoCoverPath?: string | undefined
+      videoThumbnailPath?: string | undefined
+    }
+
+    export type Return = {
+      messageId: number
+      uploadedAt: Date
+    }
   }
 }
 
 export class TelegramService {
-  constructor(private readonly settings: TelegramService.Constructor) {}
+  constructor(private readonly settings: TelegramService.Constructor.Settings) {}
 
-  async convertVideoCoverToThumbnail(videoCoverPath: string): Promise<string> {
+  async convertVideoCoverToThumbnail(
+    dto: TelegramService.ConvertVideoCoverToThumbnail.DTO
+  ): Promise<TelegramService.ConvertVideoCoverToThumbnail.Return> {
+    const { videoCoverPath } = dto
+
     const videoCoverPathParsed = path.parse(videoCoverPath)
 
     const videoThumbnailPath = path.join(
@@ -110,7 +177,9 @@ export class TelegramService {
     return videoThumbnailPath
   }
 
-  async deleteMessage(dto: { channelId: string; messageId: number }): Promise<void> {
+  async deleteMessage(
+    dto: TelegramService.DeleteMessage.DTO
+  ): Promise<TelegramService.DeleteMessage.Return> {
     const deleteMessageUrl = new URL(
       `/bot${this.settings.botToken}/deleteMessage`,
       this.settings.apiBaseUrl
@@ -139,7 +208,9 @@ export class TelegramService {
     }
   }
 
-  async deleteMessages(dto: TelegramService.DeleteMessagesDTO): Promise<void> {
+  async deleteMessages(
+    dto: TelegramService.DeleteMessages.DTO
+  ): Promise<TelegramService.DeleteMessages.Return> {
     const deleteMessagesUrl = new URL(
       `/bot${this.settings.botToken}/deleteMessages`,
       this.settings.apiBaseUrl
@@ -168,7 +239,9 @@ export class TelegramService {
     }
   }
 
-  async extractVideoCover(dto: TelegramService.ExtractVideoCoverDTO): Promise<string> {
+  async extractVideoCover(
+    dto: TelegramService.ExtractVideoCover.DTO
+  ): Promise<TelegramService.ExtractVideoCover.Return> {
     const { videoSegmentPath, durationInSeconds } = dto
 
     const videoSegmentPathParsed = path.parse(videoSegmentPath)
@@ -202,7 +275,31 @@ export class TelegramService {
     return videoCoverPath
   }
 
-  getPostDescription(dto: TelegramService.GetPostDescriptionDTO): string {
+  async getChatData(
+    dto: TelegramService.GetChatData.DTO
+  ): Promise<TelegramService.GetChatData.Return> {
+    const { chatId } = dto
+
+    const getChatUrl = new URL(`/bot${this.settings.botToken}/getChat`, this.settings.apiBaseUrl)
+
+    getChatUrl.searchParams.append('chat_id', chatId)
+
+    const getChatFetchResponse = await fetch(getChatUrl)
+    const getChatResponse = (await getChatFetchResponse.json()) as TelegramAPI.GetChatResponse
+    if (!getChatResponse.ok) {
+      throw new UsageError(getChatResponse.description)
+    }
+
+    return {
+      title: getChatResponse.result.title,
+      type: getChatResponse.result.type,
+      description: getChatResponse.result.description ? getChatResponse.result.description : null
+    }
+  }
+
+  getPostDescription(
+    dto: TelegramService.GetPostDescription.DTO
+  ): TelegramService.GetPostDescription.Return {
     const {
       baseText,
       videoTitle,
@@ -230,29 +327,7 @@ export class TelegramService {
     return postDescription
   }
 
-  async getChatData(chatId: string): Promise<TelegramService.GetChatDataReturn> {
-    const getChatUrl = new URL(`/bot${this.settings.botToken}/getChat`, this.settings.apiBaseUrl)
-
-    getChatUrl.searchParams.append('chat_id', chatId)
-
-    const getChatFetchResponse = await fetch(getChatUrl)
-    const getChatResponse = (await getChatFetchResponse.json()) as TelegramAPI.GetChatResponse
-    if (!getChatResponse.ok) {
-      throw new UsageError(getChatResponse.description)
-    }
-
-    const chatData: TelegramService.GetChatDataReturn = {
-      title: String(getChatResponse.result.title),
-      type: String(getChatResponse.result.type),
-      description: getChatResponse.result.description
-        ? String(getChatResponse.result.description)
-        : null
-    }
-
-    return chatData
-  }
-
-  async getSelfData(): Promise<TelegramService.GetSelfDataReturn> {
+  async getSelfData(): Promise<TelegramService.GetSelfData.Return> {
     const getMeUrl = new URL(`/bot${this.settings.botToken}/getMe`, this.settings.apiBaseUrl)
 
     const getMeFetchResponse = await fetch(getMeUrl)
@@ -261,16 +336,14 @@ export class TelegramService {
       throw new UsageError(getMeResponse.description)
     }
 
-    const selfData: TelegramService.GetSelfDataReturn = {
+    return {
       firstName: getMeResponse.result.first_name,
       lastName: getMeResponse.result.last_name || null,
       username: getMeResponse.result.username
     }
-
-    return selfData
   }
 
-  async runHealthCheck(): Promise<boolean> {
+  async runHealthCheck(): Promise<TelegramService.RunHealthCheck.Return> {
     try {
       const telegramGetMeUrl = new URL(
         `/bot${this.settings.botToken}/getMe`,
@@ -288,7 +361,9 @@ export class TelegramService {
     }
   }
 
-  transformDbAvailability(dto: TelegramService.TransformDbAvailabilityDTO): string {
+  transformDbAvailability(
+    dto: TelegramService.TransformDbAvailability.DTO
+  ): TelegramService.TransformDbAvailability.Return {
     const { presetAvailabilities, availability } = dto
 
     const availabilityTransformer: Record<VideoAvailabilities, string> = {
@@ -309,7 +384,9 @@ export class TelegramService {
     return transformedAvailability
   }
 
-  transformDbPublishedAt(dto: TelegramService.TransformDbPublishedAtDTO): string {
+  transformDbPublishedAt(
+    dto: TelegramService.TransformDbPublishedAt.DTO
+  ): TelegramService.TransformDbPublishedAt.Return {
     const { presetAvailabilities, presetDateFormat, publishedAt } = dto
 
     if (!publishedAt) {
@@ -337,9 +414,44 @@ export class TelegramService {
     return transformedPublishedAt
   }
 
+  async updateMessage(
+    dto: TelegramService.UpdateMessage.DTO
+  ): Promise<TelegramService.UpdateMessage.Return> {
+    const { chatId, messageId, message } = dto
+
+    const editMessageCaptionUrl = new URL(
+      `/bot${this.settings.botToken}/editMessageCaption`,
+      this.settings.apiBaseUrl
+    )
+
+    const editMessageCaptionBody = {
+      chat_id: chatId,
+      message_id: messageId,
+      caption: message,
+      parse_mode: 'MarkdownV2'
+    }
+
+    const editMessageCaptionFetchResponse = await fetch(editMessageCaptionUrl, {
+      method: 'POST',
+      body: JSON.stringify(editMessageCaptionBody),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const editMessageCaptionResponse =
+      (await editMessageCaptionFetchResponse.json()) as TelegramAPI.EditMessageTextResponse
+
+    if (!editMessageCaptionResponse.ok) {
+      throw new UsageError(
+        `Telegram error while editing message with ID ${messageId}:\n${editMessageCaptionResponse.description}`
+      )
+    }
+  }
+
   async uploadVideoToChannel(
-    dto: TelegramService.UploadVideoToChannelDTO
-  ): Promise<TelegramService.UploadVideoToChannelReturn> {
+    dto: TelegramService.UploadVideoToChannel.DTO
+  ): Promise<TelegramService.UploadVideoToChannel.Return> {
     const {
       channelId,
       videoPath,

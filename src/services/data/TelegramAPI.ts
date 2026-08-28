@@ -14,6 +14,9 @@ export namespace TelegramAPI {
     }
   }
 
+  // Response of /editMessageText
+  export type EditMessageTextResponse = Response<Message | true>
+
   // Response of /getMe
   export type GetMeResponse = Response<{
     id: number
@@ -108,15 +111,20 @@ export namespace TelegramAPI {
   }
 
   // Response of /sendVideo
-  export type SendVideoResponse = Response<{
+  export type SendVideoResponse = Response<
+    Message & {
+      video: Video
+    }
+  >
+
+  type Message = {
     message_id: number
-    sender_chat: SenderChat
+    sender_chat?: SenderChat
     chat: Chat
     date: number
-    video: Video
-    caption: string
-    has_protected_content: boolean
-  }>
+    caption?: string
+    has_protected_content?: boolean
+  }
 
   type Video = {
     duration: number

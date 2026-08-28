@@ -1,7 +1,7 @@
 import { and, asc, eq, like, or } from 'drizzle-orm'
 
 import { DrizzleConnection, type Video, videosTable } from '@/db'
-import { ImplementationError } from '@/errors'
+import { ImplementationError, UsageError } from '@/errors'
 
 export class VideosRepository {
   private readonly drizzle = DrizzleConnection.instance
@@ -54,5 +54,30 @@ export class VideosRepository {
 
   async setUploadedStatusById(id: Video['id']): Promise<void> {
     await this.drizzle.update(videosTable).set({ status: 'UPLOADED' }).where(eq(videosTable.id, id))
+  }
+
+  async update(id: Video['id'], videoDto: Partial<Video.New>): Promise<Video> {
+    const { title, description, availability, publishedAt } = videoDto
+
+    const [doesVideoExist] = await this.drizzle
+      .select()
+      .from(videosTable)
+      .where(eq(videosTable.id, id))
+
+    if (!doesVideoExist) {
+      throw new UsageError(`Video with id ${id} not found`)
+    }
+
+    const [video] = await this.drizzle
+      .update(videosTable)
+      .set({ title, description, availability, publishedAt })
+      .where(eq(videosTable.id, id))
+      .returning()
+
+    if (!video) {
+      throw new ImplementationError(`Unable to update Video with id ${id}`)
+    }
+
+    return video
   }
 }

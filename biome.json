@@ -7,7 +7,11 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/build", "!**/dist"]
+    "includes": [
+      "**",
+      "!**/build",
+      "!**/dist"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -20,6 +24,7 @@
     "rules": {
       "recommended": true,
       "suspicious": {
+        "noConfusingVoidType": "off",
         "noConsole": "warn",
         "useAwait": "warn"
       },

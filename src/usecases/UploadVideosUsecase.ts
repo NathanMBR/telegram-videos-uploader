@@ -267,8 +267,9 @@ export class UploadVideosUsecase extends Usecase {
           stepsLogger.info(`Extracted!\n`)
           stepsLogger.info(`Generating thumbnail...`)
 
-          videoThumbnailPath =
-            await this.telegramService.convertVideoCoverToThumbnail(videoCoverPath)
+          videoThumbnailPath = await this.telegramService.convertVideoCoverToThumbnail({
+            videoCoverPath
+          })
 
           stepsLogger.info('Thumbnail generated!\n')
         }

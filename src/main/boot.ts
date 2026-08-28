@@ -3,6 +3,7 @@ import { DrizzleConnection } from '@/db'
 import { InquirerCLIService, PresetService } from '@/services'
 import {
   DeleteVideoUsecase,
+  EditVideoUsecase,
   MenuUsecase,
   PrintPresetInfoUsecase,
   UploadVideosUsecase
@@ -23,9 +24,10 @@ export const boot = async () => {
   await DrizzleConnection.runMigrations()
 
   const menuUsecase = new MenuUsecase(chosenPreset, [
+    new PrintPresetInfoUsecase(chosenPreset),
     new UploadVideosUsecase(chosenPreset),
-    new DeleteVideoUsecase(chosenPreset),
-    new PrintPresetInfoUsecase(chosenPreset)
+    new EditVideoUsecase(chosenPreset),
+    new DeleteVideoUsecase(chosenPreset)
   ])
 
   const menuResult = await menuUsecase.execute()

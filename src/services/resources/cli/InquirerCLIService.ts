@@ -1,10 +1,15 @@
 import * as cli from '@inquirer/prompts'
 
 import { ImplementationError, UserExitError } from '@/errors'
-import type { CLIAutocompleteContract, CLIConfirmContract, CLISelectContract } from '@/services'
+import type {
+  CLIAutocompleteContract,
+  CLIConfirmContract,
+  CLIInputContract,
+  CLISelectContract
+} from '@/services'
 
 export class InquirerCLIService
-  implements CLIAutocompleteContract, CLIConfirmContract, CLISelectContract
+  implements CLIAutocompleteContract, CLIConfirmContract, CLISelectContract, CLIInputContract
 {
   private handleInquirerError(error: unknown): Error {
     if (error instanceof Error) {
@@ -64,7 +69,36 @@ export class InquirerCLIService
       })
 
       return result
-    } catch (error) {
+    } catch (error: unknown) {
+      throw this.handleInquirerError(error)
+    }
+  }
+
+  async input(request: CLIInputContract.Request): Promise<CLIInputContract.Response> {
+    try {
+      const { message, validator, isOptional, default: defaultValue } = request
+
+      const result = await cli.input({
+        message,
+        required: !isOptional,
+        default: defaultValue,
+        prefill: defaultValue ? 'editable' : 'tab',
+        validate: async (input: string) => {
+          if (!validator) {
+            return true
+          }
+
+          const validationResult = await validator(input)
+          if (!validationResult) {
+            return true
+          }
+
+          return validationResult
+        }
+      })
+
+      return result
+    } catch (error: unknown) {
       throw this.handleInquirerError(error)
     }
   }

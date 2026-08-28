@@ -1,4 +1,5 @@
 export * from './DeleteVideoUsecase'
+export * from './EditVideoUsecase'
 export * from './MenuUsecase'
 export * from './PrintPresetInfoUsecase'
 export * from './UploadVideosUsecase'

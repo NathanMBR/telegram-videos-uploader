@@ -27,7 +27,10 @@ export class PrintPresetInfoUsecase extends Usecase {
       throw new UsageError(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
     }
 
-    const telegramChatData = await this.telegramService.getChatData(this.preset.telegram.channelId)
+    const telegramChatData = await this.telegramService.getChatData({
+      chatId: this.preset.telegram.channelId
+    })
+
     const telegramBotSelfData = await this.telegramService.getSelfData()
 
     // Preset info
