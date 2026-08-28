@@ -2,10 +2,9 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 
 import { stepsLogger } from '@/config'
-import type { Video } from '@/db'
 import {
   type VideoFileMetadata,
-  type VideoMetadata,
+  VideoMetadata,
   type VideosMetadata,
   videosMetadataSchema
 } from '@/domain'
@@ -371,41 +370,17 @@ export class VideosService {
         metadata => path.parse(metadata.filename).name === videoBFileNameWithoutExtension
       )
 
-      const videoAUploadDate = this.transformMetadataUploadDate(videoAMetadata?.upload_date || '')
-      const videoBUploadDate = this.transformMetadataUploadDate(videoBMetadata?.upload_date || '')
+      const videoAUploadDate = VideoMetadata.transformMetadataUploadDate(
+        videoAMetadata?.upload_date || ''
+      )
+
+      const videoBUploadDate = VideoMetadata.transformMetadataUploadDate(
+        videoBMetadata?.upload_date || ''
+      )
 
       return (videoAUploadDate?.getTime() || 0) - (videoBUploadDate?.getTime() || 0)
     })
 
     return sortedVideosFileNames
-  }
-
-  transformMetadataAvailability(
-    availability: VideoMetadata['availability']
-  ): Video['availability'] {
-    const availabilityTransformer: Record<VideoMetadata['availability'], Video['availability']> = {
-      needs_auth: 'NEEDS_AUTH',
-      premium_only: 'PREMIUM_ONLY',
-      private: 'PRIVATE',
-      public: 'PUBLIC',
-      subscriber_only: 'MEMBERS_ONLY',
-      unlisted: 'UNLISTED'
-    }
-
-    const transformedAvailability = availabilityTransformer[availability] || 'UNKNOWN'
-    return transformedAvailability
-  }
-
-  transformMetadataUploadDate(uploadDate: string): Date | null {
-    if (!uploadDate) {
-      return null
-    }
-
-    const date = new Date(`${uploadDate}T00:00`)
-    if (Number.isNaN(date.getTime())) {
-      return null
-    }
-
-    return date
   }
 }

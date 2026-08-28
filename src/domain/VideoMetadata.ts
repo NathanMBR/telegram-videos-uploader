@@ -1,6 +1,7 @@
 import { z as zod } from 'zod'
 
 import { getSchemaErrorMessage } from './core'
+import type { VideoAvailabilities } from './VideoAvailabilities'
 
 const errorMessageSchema = 'video metadata'
 
@@ -29,3 +30,34 @@ export const videosMetadataSchema = zod.array(videoMetadataSchema, {
 
 export type VideoMetadata = zod.output<typeof videoMetadataSchema>
 export type VideosMetadata = zod.output<typeof videosMetadataSchema>
+
+export namespace VideoMetadata {
+  export const transformMetadataAvailability = (
+    availability: VideoMetadata['availability']
+  ): VideoAvailabilities => {
+    const availabilityTransformer: Record<VideoMetadata['availability'], VideoAvailabilities> = {
+      needs_auth: 'NEEDS_AUTH',
+      premium_only: 'PREMIUM_ONLY',
+      private: 'PRIVATE',
+      public: 'PUBLIC',
+      subscriber_only: 'MEMBERS_ONLY',
+      unlisted: 'UNLISTED'
+    }
+
+    const transformedAvailability = availabilityTransformer[availability] || 'UNKNOWN'
+    return transformedAvailability
+  }
+
+  export const transformMetadataUploadDate = (uploadDate: string): Date | null => {
+    if (!uploadDate) {
+      return null
+    }
+
+    const date = new Date(`${uploadDate}T00:00`)
+    if (Number.isNaN(date.getTime())) {
+      return null
+    }
+
+    return date
+  }
+}

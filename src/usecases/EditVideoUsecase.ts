@@ -1,6 +1,5 @@
 import { args, stepsLogger } from '@/config'
-import { videoAvailabilities } from '@/db'
-import { type Preset, Usecase } from '@/domain'
+import { type Preset, Usecase, VideoMetadata, videoAvailabilities } from '@/domain'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import {
   type CLIAutocompleteContract,
@@ -110,16 +109,17 @@ export class EditVideoUsecase extends Usecase {
           label: 'Publication date',
           value: async () => {
             const publishedAtString = await this.cliService.input({
-              message: 'Edit the publication date:',
+              message: 'Edit the publication date (optional):',
+              isOptional: true,
               validator: input => {
                 const invalidDateErrorMessage = 'Invalid date (must be in the YYYY-MM-DD format)'
 
                 if (!input) {
-                  return invalidDateErrorMessage
+                  return true
                 }
 
-                const date = new Date(`${input}T00:00`)
-                if (Number.isNaN(date.getTime())) {
+                const date = VideoMetadata.transformMetadataUploadDate(input)
+                if (!date) {
                   return invalidDateErrorMessage
                 }
 
@@ -127,7 +127,7 @@ export class EditVideoUsecase extends Usecase {
               }
             })
 
-            const publishedAt = new Date(`${publishedAtString}T00:00`)
+            const publishedAt = VideoMetadata.transformMetadataUploadDate(publishedAtString)
 
             const editedVideo = await this.videosRepository.update(selectedVideo.id, {
               ...selectedVideo,

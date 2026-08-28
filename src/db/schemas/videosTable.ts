@@ -1,18 +1,10 @@
 import { type InferInsertModel, type InferSelectModel, sql } from 'drizzle-orm'
 import { check, int, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
+import { type VideoAvailabilities, videoAvailabilities } from '@/domain'
+
 import { unixepoch } from './core'
 
-export const videoAvailabilities = [
-  'UNKNOWN',
-  'PUBLIC',
-  'MEMBERS_ONLY',
-  'PRIVATE',
-  'UNLISTED',
-  'PREMIUM_ONLY',
-  'NEEDS_AUTH'
-] as const
-export type VideoAvailabilities = (typeof videoAvailabilities)[number]
 export const defaultVideoAvailability = 'UNKNOWN' satisfies VideoAvailabilities
 const availabilityCheck = sql.raw(
   `(${videoAvailabilities.map(availability => `'${availability}'`).join(', ')})`

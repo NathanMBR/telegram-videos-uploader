@@ -3,11 +3,12 @@ import path from 'node:path'
 
 import { Agent, FormData, fetch } from 'undici'
 
-import { defaultVideoAvailability, type VideoAvailabilities } from '@/db'
+import { defaultVideoAvailability } from '@/db'
 import {
   defaultPostDescriptionDateFormat,
   type PostDescriptionAvailabilities,
-  type PostDescriptionDateFormats
+  type PostDescriptionDateFormats,
+  type VideoAvailabilities
 } from '@/domain'
 import { ImplementationError, UsageError } from '@/errors'
 import { execFile } from '@/utils'
@@ -512,7 +513,7 @@ export class TelegramService {
       throw new UsageError(sendVideoResponse.description)
     }
 
-    const uploadedAt = new Date(sendVideoResponse.result.date * 1_000)
+    const uploadedAt = new Date(sendVideoResponse.result.date * oneSecondInMilliseconds)
     if (Number.isNaN(uploadedAt.getTime())) {
       throw new ImplementationError('Invalid date returned from Telegram post')
     }

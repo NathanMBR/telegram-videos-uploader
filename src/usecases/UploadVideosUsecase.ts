@@ -2,7 +2,7 @@ import path from 'node:path'
 
 import { args, logger, stepsLogger } from '@/config'
 import type { Video } from '@/db'
-import { type Preset, Usecase } from '@/domain'
+import { type Preset, Usecase, VideoMetadata } from '@/domain'
 import { ImplementationError, UsageError } from '@/errors'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import {
@@ -154,10 +154,8 @@ export class UploadVideosUsecase extends Usecase {
               origin: this.preset.origin,
               description: videoMetadata.description,
               url: videoMetadata.webpage_url,
-              availability: this.videosService.transformMetadataAvailability(
-                videoMetadata.availability
-              ),
-              publishedAt: this.videosService.transformMetadataUploadDate(videoMetadata.upload_date)
+              availability: VideoMetadata.transformMetadataAvailability(videoMetadata.availability),
+              publishedAt: VideoMetadata.transformMetadataUploadDate(videoMetadata.upload_date)
             }
           : {
               title: this.videosService.removeYtDlpIdFromFileName(videoFileNameWithoutExtension),
