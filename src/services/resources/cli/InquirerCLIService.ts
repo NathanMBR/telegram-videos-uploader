@@ -1,3 +1,7 @@
+/**
+ * DEPRECATED: This file is no longer supported and it is ignored from linting and type checking.
+ */
+
 import * as cli from '@inquirer/prompts'
 
 import { stepsLogger } from '@/config'
@@ -74,12 +78,12 @@ export class InquirerCLIService
         required: !isOptional,
         default: defaultValue,
         prefill: defaultValue ? 'editable' : 'tab',
-        validate: async (input: string) => {
+        validate: (input: string) => {
           if (!validator) {
             return true
           }
 
-          const validationResult = await validator(input)
+          const validationResult = validator(input)
           if (!validationResult) {
             return true
           }

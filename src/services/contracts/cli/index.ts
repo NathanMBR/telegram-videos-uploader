@@ -1,5 +1,6 @@
 export * from './CLIAutocompleteContract'
 export * from './CLIConfirmContract'
 export * from './CLIInputContract'
+export * from './CLILoadingContract'
 export * from './CLIPrintContract'
 export * from './CLISelectContract'

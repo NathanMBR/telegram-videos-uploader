@@ -7,7 +7,12 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/build", "!**/dist"]
+    "includes": [
+      "**",
+      "!**/build",
+      "!**/dist",
+      "!**/src/services/resources/cli/InquirerCLIService.ts"
+    ]
   },
   "formatter": {
     "enabled": true,

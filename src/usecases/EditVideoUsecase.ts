@@ -6,7 +6,6 @@ import {
   type CLIInputContract,
   type CLIPrintContract,
   type CLISelectContract,
-  InquirerCLIService,
   TelegramService
 } from '@/services'
 import { getMarkdownEscapedText } from '@/utils'
@@ -18,18 +17,20 @@ export class EditVideoUsecase extends Usecase {
   private readonly videoUploadsRepository: VideoUploadsRepository
 
   private readonly telegramService: TelegramService
-  private readonly cliService: CLIAutocompleteContract &
-    CLISelectContract &
-    CLIInputContract &
-    CLIPrintContract
 
-  constructor(public readonly preset: Preset) {
+  constructor(
+    public readonly preset: Preset,
+    private readonly cliService: CLIAutocompleteContract &
+      CLISelectContract &
+      CLIInputContract &
+      CLIPrintContract
+  ) {
     super()
 
     this.videosRepository = new VideosRepository()
     this.videoUploadsRepository = new VideoUploadsRepository()
 
-    this.cliService = new InquirerCLIService()
+    this.cliService = cliService
 
     this.telegramService = new TelegramService({
       apiBaseUrl: preset.telegram.apiBaseUrl,

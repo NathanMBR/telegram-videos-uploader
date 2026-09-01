@@ -5,7 +5,6 @@ import {
   type CLIAutocompleteContract,
   type CLIConfirmContract,
   type CLIPrintContract,
-  InquirerCLIService,
   TelegramService
 } from '@/services'
 
@@ -15,16 +14,18 @@ export class DeleteVideoUsecase extends Usecase {
   private readonly videosRepository: VideosRepository
   private readonly videoUploadsRepository: VideoUploadsRepository
 
-  private readonly cliService: CLIAutocompleteContract & CLIConfirmContract & CLIPrintContract
   private readonly telegramService: TelegramService
 
-  constructor(public readonly preset: Preset) {
+  constructor(
+    public readonly preset: Preset,
+    private readonly cliService: CLIAutocompleteContract & CLIConfirmContract & CLIPrintContract
+  ) {
     super()
 
     this.videosRepository = new VideosRepository()
     this.videoUploadsRepository = new VideoUploadsRepository()
 
-    this.cliService = new InquirerCLIService()
+    this.cliService = cliService
     this.telegramService = new TelegramService({
       apiBaseUrl: preset.telegram.apiBaseUrl,
       botToken: preset.telegram.botToken

@@ -1,20 +1,17 @@
 import { type Preset, Usecase } from '@/domain'
 import { UsageError } from '@/errors'
-import {
-  type CLIConfirmContract,
-  type CLIPrintContract,
-  InquirerCLIService,
-  TelegramService
-} from '@/services'
+import { type CLIConfirmContract, type CLIPrintContract, TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
 export class PrintPresetInfoUsecase extends Usecase {
   public readonly actionTitle = 'Check preset data'
 
-  public readonly telegramService: TelegramService
-  public readonly cliService: CLIConfirmContract & CLIPrintContract
+  private readonly telegramService: TelegramService
 
-  constructor(public readonly preset: Preset) {
+  constructor(
+    public readonly preset: Preset,
+    private readonly cliService: CLIConfirmContract & CLIPrintContract
+  ) {
     super()
 
     this.telegramService = new TelegramService({
@@ -22,7 +19,7 @@ export class PrintPresetInfoUsecase extends Usecase {
       botToken: preset.telegram.botToken
     })
 
-    this.cliService = new InquirerCLIService()
+    this.cliService = cliService
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {
@@ -38,27 +35,29 @@ export class PrintPresetInfoUsecase extends Usecase {
     const telegramBotSelfData = await this.telegramService.getSelfData()
 
     // Preset info
-    this.cliService.print(getSeparator('PRESET'))
-    this.cliService.print(`Name: ${this.preset.name}`)
-    this.cliService.print(`Origin: ${this.preset.origin}`)
-    this.cliService.print(`Database: ${this.preset.databaseUrl}`)
-    this.cliService.print(`Videos directory: ${this.preset.videosDirectory}`)
-    this.cliService.print(`Channel name: ${this.preset.postDescription.channel.name}`)
-    this.cliService.print(`Channel url: ${this.preset.postDescription.channel.url}`)
-    this.cliService.print(`Date format: ${this.preset.postDescription.dateFormat}`)
+    const presetInfo = [
+      getSeparator('PRESET'),
+      `Name: ${this.preset.name}`,
+      `Origin: ${this.preset.origin}`,
+      `Database: ${this.preset.databaseUrl}`,
+      `Videos directory: ${this.preset.videosDirectory}`,
+      `Channel name: ${this.preset.postDescription.channel.name}`,
+      `Channel url: ${this.preset.postDescription.channel.url}`,
+      `Date format: ${this.preset.postDescription.dateFormat}`
+    ].join('\n')
+
+    this.cliService.print(presetInfo)
 
     // Telegram info
-    this.cliService.print(`\n${getSeparator('TELEGRAM')}`)
-    this.cliService.print(`Channel title: ${telegramChatData.title}`)
+    const telegramInfo = [
+      `\n${getSeparator('TELEGRAM')}`,
+      `Channel title: ${telegramChatData.title}`,
+      `Channel description: ${telegramChatData.description || '(empty)'}`,
+      `Bot title: ${telegramBotSelfData.firstName} ${telegramBotSelfData.lastName || ''}`,
+      `Bot username: @${telegramBotSelfData.username}`
+    ].join('\n')
 
-    if (telegramChatData.description) {
-      this.cliService.print(`Channel description: ${telegramChatData.description}`)
-    }
-
-    this.cliService.print(
-      `Bot title: ${telegramBotSelfData.firstName} ${telegramBotSelfData.lastName || ''}`
-    )
-    this.cliService.print(`Bot username: @${telegramBotSelfData.username}`)
+    this.cliService.print(telegramInfo)
 
     const shouldGoBack = await this.cliService.confirm({
       message: 'Return to menu?',

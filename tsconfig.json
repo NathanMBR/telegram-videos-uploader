@@ -1,4 +1,5 @@
 {
+  "exclude": ["src/services/resources/cli/InquirerCLIService.ts"],
   "compilerOptions": {
     "noEmit": true,
     "module": "nodenext",

@@ -3,7 +3,7 @@ export namespace CLIInputContract {
     message: string
     isOptional?: boolean
     default?: string
-    validator?: (input: string) => boolean | string | Promise<boolean | string>
+    validator?: (input: string) => boolean | string
   }
 
   export type Response = string

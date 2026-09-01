@@ -1,17 +1,17 @@
 import { type Preset, Usecase } from '@/domain'
-import { type CLISelectContract, InquirerCLIService } from '@/services'
+import type { CLISelectContract } from '@/services'
 
 export class MenuUsecase extends Usecase {
   public readonly actionTitle = 'Select action'
 
-  private readonly cliService: CLISelectContract
   constructor(
     public readonly preset: Preset,
+    private readonly cliService: CLISelectContract,
     private readonly usecases: Array<Usecase>
   ) {
     super()
 
-    this.cliService = new InquirerCLIService()
+    this.cliService = cliService
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {

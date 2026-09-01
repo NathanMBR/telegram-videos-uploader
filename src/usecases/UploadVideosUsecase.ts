@@ -8,7 +8,6 @@ import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import {
   type CLIConfirmContract,
   type CLIPrintContract,
-  InquirerCLIService,
   TelegramService,
   VideosService
 } from '@/services'
@@ -17,14 +16,16 @@ import { getMarkdownEscapedText, getSeparator } from '@/utils'
 export class UploadVideosUsecase extends Usecase {
   public readonly actionTitle = 'Upload videos'
 
-  public readonly telegramService: TelegramService
-  public readonly videosService: VideosService
-  public readonly cliService: CLIConfirmContract & CLIPrintContract
+  private readonly telegramService: TelegramService
+  private readonly videosService: VideosService
 
-  public readonly videosRepository: VideosRepository
-  public readonly videoUploadsRepository: VideoUploadsRepository
+  private readonly videosRepository: VideosRepository
+  private readonly videoUploadsRepository: VideoUploadsRepository
 
-  constructor(public readonly preset: Preset) {
+  constructor(
+    public readonly preset: Preset,
+    private readonly cliService: CLIConfirmContract & CLIPrintContract
+  ) {
     super()
 
     this.telegramService = new TelegramService({
@@ -33,7 +34,7 @@ export class UploadVideosUsecase extends Usecase {
     })
 
     this.videosService = new VideosService()
-    this.cliService = new InquirerCLIService()
+    this.cliService = cliService
 
     this.videosRepository = new VideosRepository()
     this.videoUploadsRepository = new VideoUploadsRepository()
