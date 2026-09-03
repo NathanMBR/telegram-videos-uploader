@@ -7,18 +7,13 @@ import type {
   CLIInputContract,
   CLILoadingContract,
   CLIPrintContract,
-  CLISelectContract
+  CLIProgressContract,
+  CLISelectContract,
+  CLIService,
+  CLIWarnContract
 } from '@/services'
 
-export class ClackCLIService
-  implements
-    CLIAutocompleteContract,
-    CLIConfirmContract,
-    CLIInputContract,
-    CLILoadingContract,
-    CLIPrintContract,
-    CLISelectContract
-{
+export class ClackCLIService implements CLIService {
   constructor() {
     cli.intro('Telegram Videos Uploader')
   }
@@ -115,6 +110,20 @@ export class ClackCLIService
     cli.log.step(message)
   }
 
+  public progress(request: CLIProgressContract.Request): CLIProgressContract.Response {
+    const { initialMessage, progressMax = 100 } = request
+
+    const progress = cli.progress({ style: 'block', max: progressMax })
+    progress.start(initialMessage)
+
+    return {
+      changeMessage: progress.message,
+      addToProgress: progress.advance,
+      cancel: progress.cancel,
+      finish: progress.stop
+    }
+  }
+
   async select<T>(request: CLISelectContract.Request<T>): Promise<CLISelectContract.Response<T>> {
     const { message, options } = request
 
@@ -133,5 +142,11 @@ export class ClackCLIService
     }
 
     return result.value
+  }
+
+  public warn(...request: CLIWarnContract.Request): CLIWarnContract.Response {
+    const message = request.join('\n')
+
+    cli.log.warn(message)
   }
 }

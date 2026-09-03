@@ -1,12 +1,7 @@
 import { args } from '@/config'
 import { type Preset, Usecase } from '@/domain'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
-import {
-  type CLIAutocompleteContract,
-  type CLIConfirmContract,
-  type CLIPrintContract,
-  TelegramService
-} from '@/services'
+import { type CLIService, TelegramService } from '@/services'
 
 export class DeleteVideoUsecase extends Usecase {
   public readonly actionTitle = 'Delete video'
@@ -17,15 +12,14 @@ export class DeleteVideoUsecase extends Usecase {
   private readonly telegramService: TelegramService
 
   constructor(
-    public readonly preset: Preset,
-    private readonly cliService: CLIAutocompleteContract & CLIConfirmContract & CLIPrintContract
+    protected readonly preset: Preset,
+    private readonly cliService: CLIService
   ) {
     super()
 
     this.videosRepository = new VideosRepository()
     this.videoUploadsRepository = new VideoUploadsRepository()
 
-    this.cliService = cliService
     this.telegramService = new TelegramService({
       apiBaseUrl: preset.telegram.apiBaseUrl,
       botToken: preset.telegram.botToken
@@ -33,6 +27,11 @@ export class DeleteVideoUsecase extends Usecase {
   }
 
   public async execute(): Promise<Usecase.ExecuteReturn> {
+    const healthCheckError = await this.telegramService.runHealthCheck()
+    if (healthCheckError) {
+      throw healthCheckError
+    }
+
     const selectedVideo = await this.cliService.autocomplete({
       message: 'Select the video to remove:',
       getOptions: async input => {
@@ -62,6 +61,13 @@ export class DeleteVideoUsecase extends Usecase {
       return 'OK'
     }
 
+    const deleteLoading = this.cliService.loading({
+      loadingMessage: 'Deleting video',
+      doneMessage: 'Successfully deleted!'
+    })
+
+    deleteLoading.start()
+
     const videoUploads = await this.videoUploadsRepository.getAll(selectedVideo.id)
 
     await this.telegramService.deleteMessages({
@@ -71,7 +77,7 @@ export class DeleteVideoUsecase extends Usecase {
 
     await this.videosRepository.deleteFromId(selectedVideo.id)
 
-    this.cliService.print('Successfully deleted!')
+    deleteLoading.stop()
 
     return 'OK'
   }

@@ -1,16 +1,11 @@
 import path from 'node:path'
 
-import { args, logger } from '@/config'
+import { args } from '@/config'
 import type { Video } from '@/db'
 import { type Preset, Usecase, VideoMetadata } from '@/domain'
-import { ImplementationError, UsageError } from '@/errors'
+import { ImplementationError } from '@/errors'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
-import {
-  type CLIConfirmContract,
-  type CLIPrintContract,
-  TelegramService,
-  VideosService
-} from '@/services'
+import { type CLIService, TelegramService, VideosService } from '@/services'
 import { getMarkdownEscapedText, getSeparator } from '@/utils'
 
 export class UploadVideosUsecase extends Usecase {
@@ -23,8 +18,8 @@ export class UploadVideosUsecase extends Usecase {
   private readonly videoUploadsRepository: VideoUploadsRepository
 
   constructor(
-    public readonly preset: Preset,
-    private readonly cliService: CLIConfirmContract & CLIPrintContract
+    protected readonly preset: Preset,
+    private readonly cliService: CLIService
   ) {
     super()
 
@@ -34,7 +29,6 @@ export class UploadVideosUsecase extends Usecase {
     })
 
     this.videosService = new VideosService()
-    this.cliService = cliService
 
     this.videosRepository = new VideosRepository()
     this.videoUploadsRepository = new VideoUploadsRepository()
@@ -43,9 +37,9 @@ export class UploadVideosUsecase extends Usecase {
   async execute(): Promise<Usecase.ExecuteReturn> {
     const { videosDirectory } = this.preset
 
-    const isApiAvailable = await this.telegramService.runHealthCheck()
-    if (!isApiAvailable) {
-      throw new UsageError(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
+    const healthCheckError = await this.telegramService.runHealthCheck()
+    if (healthCheckError) {
+      throw healthCheckError
     }
 
     const videosMetadata = await this.videosService.loadVideosMetadata(videosDirectory)
@@ -55,7 +49,7 @@ export class UploadVideosUsecase extends Usecase {
 
     const { videosFileNamesForConversion, videosFileNames } = listVideosFileNamesResponse
     if (videosFileNames.length <= 0 && videosFileNamesForConversion.length <= 0) {
-      logger.warn(`No files found at directory "${videosDirectory}"`)
+      this.cliService.warn(`No files found at directory "${videosDirectory}"`)
       return 'OK'
     }
 
@@ -69,7 +63,12 @@ export class UploadVideosUsecase extends Usecase {
         const convertedVideosFileNames: Array<string> = []
 
         for (const videoFileName of videosFileNamesForConversion) {
-          this.cliService.print(`Converting file "${videoFileName}"...`)
+          const conversionLoader = this.cliService.loading({
+            loadingMessage: `Converting file "${videoFileName}"...`,
+            doneMessage: `Conversion of file "${videoFileName}" done!`
+          })
+
+          conversionLoader.start()
 
           const videoPath = path.join(videosDirectory, videoFileName)
 
@@ -80,6 +79,8 @@ export class UploadVideosUsecase extends Usecase {
 
           await this.videosService.convertVideoToMp4(videoPath)
           convertedVideosFileNames.push(videoFileName)
+
+          conversionLoader.stop()
         }
 
         videosFileNames.push(...convertedVideosFileNames)
@@ -90,11 +91,11 @@ export class UploadVideosUsecase extends Usecase {
       videosMetadata.length <= 0 || videosFileNames.length !== videosMetadata.length
 
     if (videosMetadata.length <= 0) {
-      logger.warn('File "videos.json" is empty')
+      this.cliService.warn('File "videos.json" is empty')
     }
 
     if (videosFileNames.length !== videosMetadata.length) {
-      logger.warn(
+      this.cliService.warn(
         `Amount of files in provided directory (${videosFileNames.length}) doesn't match the amount of entries in "videos.json" (${videosMetadata.length})`
       )
     }
@@ -207,18 +208,31 @@ export class UploadVideosUsecase extends Usecase {
 
       await this.videosService.deleteVideoSegments(videoSegmentsDirectory)
 
-      this.cliService.print('Segmenting...')
+      const baseSegmentingMessage = 'Segmenting...'
+
+      const segmentingProgress = this.cliService.progress({
+        initialMessage: baseSegmentingMessage,
+        progressMax: 100
+      })
+
+      let segmentingPercentage = 0
 
       await this.videosService.generateVideoSegments({
         videoFilePath,
         videoSegmentsDirectory,
-        ...videoFileMetadata
+        ...videoFileMetadata,
+        percentageDeltaReporter: percentageDelta => {
+          segmentingPercentage += percentageDelta
+
+          segmentingProgress.addToProgress(percentageDelta)
+          segmentingProgress.changeMessage(`${baseSegmentingMessage} (${segmentingPercentage})`)
+        }
       })
+
+      segmentingProgress.finish('Segmentation done!')
 
       const videoSegmentsFileNames =
         await this.videosService.listVideoSegmentsFileNames(videoSegmentsDirectory)
-
-      this.cliService.print('Segmentation done!\n')
 
       for (const [videoSegmentIndex, videoSegmentFileName] of videoSegmentsFileNames.entries()) {
         const partCurrent = videoSegmentIndex + 1
@@ -274,9 +288,12 @@ export class UploadVideosUsecase extends Usecase {
           this.cliService.print('Thumbnail generated!\n')
         }
 
-        this.cliService.print(
-          `Uploading video segment ${partCurrentString} of ${partTotalString}...`
-        )
+        const uploadLoader = this.cliService.loading({
+          loadingMessage: `Uploading video segment ${partCurrentString} of ${partTotalString}...`,
+          doneMessage: `Video segment ${partCurrentString} of ${partTotalString} uploaded!\n`
+        })
+
+        uploadLoader.start()
 
         const telegramPost = await this.telegramService.uploadVideoToChannel({
           channelId: this.preset.telegram.channelId,
@@ -296,7 +313,7 @@ export class UploadVideosUsecase extends Usecase {
           part: partCurrent
         })
 
-        this.cliService.print(`Video segment uploaded!\n`)
+        uploadLoader.stop()
       }
 
       await this.videosRepository.setUploadedStatusById(video.id)

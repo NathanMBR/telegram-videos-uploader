@@ -1,17 +1,15 @@
 import { type Preset, Usecase } from '@/domain'
-import type { CLISelectContract } from '@/services'
+import type { CLIService } from '@/services'
 
 export class MenuUsecase extends Usecase {
   public readonly actionTitle = 'Select action'
 
   constructor(
-    public readonly preset: Preset,
-    private readonly cliService: CLISelectContract,
+    protected readonly preset: Preset,
+    private readonly cliService: CLIService,
     private readonly usecases: Array<Usecase>
   ) {
     super()
-
-    this.cliService = cliService
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {
@@ -30,7 +28,7 @@ export class MenuUsecase extends Usecase {
       value: async () => 'OK' as const
     } as const
 
-    options.unshift(changePresetOption)
+    options.push(changePresetOption)
     options.push(exitOption)
 
     const chosenAction = await this.cliService.select({

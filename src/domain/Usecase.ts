@@ -7,7 +7,7 @@ export namespace Usecase {
 
 export abstract class Usecase {
   public abstract readonly actionTitle: string
-  public abstract readonly preset: Preset
+  protected abstract readonly preset: Preset
 
   public printDryRunMessage(): void {
     logger.warn('Dry run enabled; skipping...')

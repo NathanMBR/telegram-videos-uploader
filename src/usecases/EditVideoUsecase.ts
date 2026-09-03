@@ -1,13 +1,7 @@
 import { args } from '@/config'
 import { type Preset, Usecase, VideoMetadata, videoAvailabilities } from '@/domain'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
-import {
-  type CLIAutocompleteContract,
-  type CLIInputContract,
-  type CLIPrintContract,
-  type CLISelectContract,
-  TelegramService
-} from '@/services'
+import { type CLIService, TelegramService } from '@/services'
 import { getMarkdownEscapedText } from '@/utils'
 
 export class EditVideoUsecase extends Usecase {
@@ -19,18 +13,13 @@ export class EditVideoUsecase extends Usecase {
   private readonly telegramService: TelegramService
 
   constructor(
-    public readonly preset: Preset,
-    private readonly cliService: CLIAutocompleteContract &
-      CLISelectContract &
-      CLIInputContract &
-      CLIPrintContract
+    protected readonly preset: Preset,
+    private readonly cliService: CLIService
   ) {
     super()
 
     this.videosRepository = new VideosRepository()
     this.videoUploadsRepository = new VideoUploadsRepository()
-
-    this.cliService = cliService
 
     this.telegramService = new TelegramService({
       apiBaseUrl: preset.telegram.apiBaseUrl,
@@ -39,6 +28,11 @@ export class EditVideoUsecase extends Usecase {
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {
+    const healthCheckError = await this.telegramService.runHealthCheck()
+    if (healthCheckError) {
+      throw healthCheckError
+    }
+
     const selectedVideo = await this.cliService.autocomplete({
       message: 'Select the video to edit:',
       getOptions: async input => {
@@ -53,6 +47,11 @@ export class EditVideoUsecase extends Usecase {
       }
     })
 
+    const editingVideoLoading = this.cliService.loading({
+      loadingMessage: 'Editing video info',
+      doneMessage: 'Video info successfully edited!'
+    })
+
     const getEditedVideo = await this.cliService.select({
       message: 'Select the property to edit:',
       options: [
@@ -63,6 +62,8 @@ export class EditVideoUsecase extends Usecase {
               message: 'Edit the title:',
               default: selectedVideo.title
             })
+
+            editingVideoLoading.start()
 
             const editedVideo = await this.videosRepository.update(selectedVideo.id, {
               ...selectedVideo,
@@ -79,6 +80,8 @@ export class EditVideoUsecase extends Usecase {
               message: 'Edit the description:',
               default: selectedVideo.description || ''
             })
+
+            editingVideoLoading.start()
 
             const editedVideo = await this.videosRepository.update(selectedVideo.id, {
               ...selectedVideo,
@@ -101,6 +104,8 @@ export class EditVideoUsecase extends Usecase {
                 value: availability
               }))
             })
+
+            editingVideoLoading.start()
 
             const editedVideo = await this.videosRepository.update(selectedVideo.id, {
               ...selectedVideo,
@@ -132,6 +137,8 @@ export class EditVideoUsecase extends Usecase {
               }
             })
 
+            editingVideoLoading.start()
+
             const publishedAt = VideoMetadata.transformMetadataUploadDate(publishedAtString)
 
             const editedVideo = await this.videosRepository.update(selectedVideo.id, {
@@ -162,42 +169,44 @@ export class EditVideoUsecase extends Usecase {
 
     const messages = await this.videoUploadsRepository.getAll(selectedVideo.id)
 
-    for (const message of messages) {
-      const partCurrentString = String(message.part).padStart(2, '0')
-      const partTotalString = String(messages.length).padStart(2, '0')
+    await Promise.all(
+      messages.map(message => {
+        const partCurrentString = String(message.part).padStart(2, '0')
+        const partTotalString = String(messages.length).padStart(2, '0')
 
-      const postDescription = this.telegramService.getPostDescription({
-        baseText: this.preset.postDescription.baseText,
-        videoTitle: getMarkdownEscapedText(editedVideo.title),
-        videoUrl: getMarkdownEscapedText(editedVideo.url || ''),
-        videoDescription: getMarkdownEscapedText(editedVideo.description || ''),
-        channelTitle: getMarkdownEscapedText(this.preset.postDescription.channel.name),
-        channelUrl: getMarkdownEscapedText(this.preset.postDescription.channel.url),
-        availability: getMarkdownEscapedText(
-          this.telegramService.transformDbAvailability({
-            presetAvailabilities: this.preset.postDescription.availability,
-            availability: editedVideo.availability
-          })
-        ),
-        date: getMarkdownEscapedText(
-          this.telegramService.transformDbPublishedAt({
-            presetAvailabilities: this.preset.postDescription.availability,
-            presetDateFormat: this.preset.postDescription.dateFormat,
-            publishedAt: editedVideo.publishedAt
-          })
-        ),
-        partCurrent: partCurrentString,
-        partTotal: partTotalString
+        const postDescription = this.telegramService.getPostDescription({
+          baseText: this.preset.postDescription.baseText,
+          videoTitle: getMarkdownEscapedText(editedVideo.title),
+          videoUrl: getMarkdownEscapedText(editedVideo.url || ''),
+          videoDescription: getMarkdownEscapedText(editedVideo.description || ''),
+          channelTitle: getMarkdownEscapedText(this.preset.postDescription.channel.name),
+          channelUrl: getMarkdownEscapedText(this.preset.postDescription.channel.url),
+          availability: getMarkdownEscapedText(
+            this.telegramService.transformDbAvailability({
+              presetAvailabilities: this.preset.postDescription.availability,
+              availability: editedVideo.availability
+            })
+          ),
+          date: getMarkdownEscapedText(
+            this.telegramService.transformDbPublishedAt({
+              presetAvailabilities: this.preset.postDescription.availability,
+              presetDateFormat: this.preset.postDescription.dateFormat,
+              publishedAt: editedVideo.publishedAt
+            })
+          ),
+          partCurrent: partCurrentString,
+          partTotal: partTotalString
+        })
+
+        return this.telegramService.updateMessage({
+          chatId: this.preset.telegram.channelId,
+          messageId: message.telegramPostId,
+          message: postDescription
+        })
       })
+    )
 
-      await this.telegramService.updateMessage({
-        chatId: this.preset.telegram.channelId,
-        messageId: message.telegramPostId,
-        message: postDescription
-      })
-    }
-
-    this.cliService.print('Successfully updated!')
+    editingVideoLoading.stop()
 
     return 'OK'
   }

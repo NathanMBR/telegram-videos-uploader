@@ -1,6 +1,5 @@
 import { type Preset, Usecase } from '@/domain'
-import { UsageError } from '@/errors'
-import { type CLIConfirmContract, type CLIPrintContract, TelegramService } from '@/services'
+import { type CLIService, TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
 export class PrintPresetInfoUsecase extends Usecase {
@@ -9,8 +8,8 @@ export class PrintPresetInfoUsecase extends Usecase {
   private readonly telegramService: TelegramService
 
   constructor(
-    public readonly preset: Preset,
-    private readonly cliService: CLIConfirmContract & CLIPrintContract
+    protected readonly preset: Preset,
+    private readonly cliService: CLIService
   ) {
     super()
 
@@ -18,21 +17,29 @@ export class PrintPresetInfoUsecase extends Usecase {
       apiBaseUrl: preset.telegram.apiBaseUrl,
       botToken: preset.telegram.botToken
     })
-
-    this.cliService = cliService
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {
-    const isApiAvailable = await this.telegramService.runHealthCheck()
-    if (!isApiAvailable) {
-      throw new UsageError(`Could not connect to API at "${this.preset.telegram.apiBaseUrl}"`)
-    }
-
-    const telegramChatData = await this.telegramService.getChatData({
-      chatId: this.preset.telegram.channelId
+    const presetDataLoading = this.cliService.loading({
+      loadingMessage: 'Loading preset data',
+      doneMessage: 'Loading done!'
     })
 
-    const telegramBotSelfData = await this.telegramService.getSelfData()
+    presetDataLoading.start()
+
+    const healthCheckError = await this.telegramService.runHealthCheck()
+    if (healthCheckError) {
+      throw healthCheckError
+    }
+
+    const [telegramChatData, telegramBotSelfData] = await Promise.all([
+      this.telegramService.getChatData({
+        chatId: this.preset.telegram.channelId
+      }),
+      this.telegramService.getSelfData()
+    ])
+
+    presetDataLoading.stop()
 
     // Preset info
     const presetInfo = [

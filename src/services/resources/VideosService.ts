@@ -8,7 +8,7 @@ import {
   videosMetadataSchema
 } from '@/domain'
 import { ImplementationError, UsageError } from '@/errors'
-import { checkPathAccessibility, execFile } from '@/utils'
+import { checkPathAccessibility, execFile, spawn } from '@/utils'
 
 export namespace VideosService {
   export type GenerateVideoSegmentsDTO = {
@@ -16,6 +16,7 @@ export namespace VideosService {
     videoSegmentsDirectory: string
     sizeInBytes: number
     durationInSeconds: number
+    percentageDeltaReporter?: (percentageDelta: number) => void
   }
 
   export type GetVideoSegmentsDirectoryDTO = {
@@ -111,7 +112,13 @@ export class VideosService {
   }
 
   async generateVideoSegments(dto: VideosService.GenerateVideoSegmentsDTO): Promise<void> {
-    const { videoFilePath, videoSegmentsDirectory, sizeInBytes, durationInSeconds } = dto
+    const {
+      videoFilePath,
+      videoSegmentsDirectory,
+      sizeInBytes,
+      durationInSeconds,
+      percentageDeltaReporter
+    } = dto
 
     const { name: videoFileNameWithoutExtension, ext: videoFileExtension } =
       path.parse(videoFilePath)
@@ -173,10 +180,58 @@ export class VideosService {
       `${durationOfEachFileInSeconds}`,
       `-reset_timestamps`,
       `1`,
+      '-progress',
+      'pipe:1',
       ffmpegCommandOutputFilePath
     ]
 
-    await execFile('ffmpeg', ffmpegCommandArgs)
+    let currentPercentage = 0
+    let ffmpegBufferString = ''
+
+    await spawn({
+      command: 'ffmpeg',
+      args: ffmpegCommandArgs,
+      onData: data => {
+        if (!percentageDeltaReporter) {
+          return
+        }
+
+        ffmpegBufferString += data.toString()
+
+        const lines = ffmpegBufferString.split('\n')
+
+        ffmpegBufferString = lines.pop() || ''
+
+        for (const line of lines) {
+          const outTimeKey = 'out_time_ms='
+
+          if (!line.startsWith(outTimeKey)) {
+            continue
+          }
+
+          const outTimeString = line.split(outTimeKey)[1]?.trim() || ''
+          const outTime = Number(outTimeString)
+          if (Number.isNaN(outTime) || !Number.isFinite(outTime)) {
+            continue
+          }
+
+          const outTimeMs = outTime / 1_000
+
+          const durationInMs = durationInSeconds * 1_000
+
+          const reportedPercentage = Math.min((outTimeMs / durationInMs) * 100, 100)
+
+          const percentageDelta = Math.floor(reportedPercentage - currentPercentage)
+          if (percentageDelta <= 0) {
+            continue
+          }
+
+          currentPercentage = Math.max(reportedPercentage, currentPercentage)
+
+          percentageDeltaReporter(percentageDelta)
+        }
+      }
+    })
   }
 
   async getVideoCoverPath(videoFilePath: string): Promise<string | undefined> {

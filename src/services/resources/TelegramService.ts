@@ -96,7 +96,7 @@ export namespace TelegramService {
   }
 
   export namespace RunHealthCheck {
-    export type Return = boolean
+    export type Return = Error | void
   }
 
   export namespace TransformDbAvailability {
@@ -345,6 +345,10 @@ export class TelegramService {
   }
 
   async runHealthCheck(): Promise<TelegramService.RunHealthCheck.Return> {
+    const healthCheckError = new UsageError(
+      `Could not connect to API at "${this.settings.apiBaseUrl}"`
+    )
+
     try {
       const telegramGetMeUrl = new URL(
         `/bot${this.settings.botToken}/getMe`,
@@ -356,9 +360,11 @@ export class TelegramService {
       const getMeResponse = (await getMeFetchResponse.json()) as TelegramAPI.GetMeResponse
 
       const isHealthy = getMeFetchResponse.ok && getMeResponse.ok
-      return isHealthy
+      if (!isHealthy) {
+        return healthCheckError
+      }
     } catch {
-      return false
+      return healthCheckError
     }
   }
 
