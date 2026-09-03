@@ -52,7 +52,7 @@ export class DeleteVideoUsecase extends Usecase {
     })
 
     if (!deleteConfirmation) {
-      this.cliService.print('Deletion cancelled.')
+      this.cliService.printStep('Deletion cancelled.')
       return 'MENU'
     }
 

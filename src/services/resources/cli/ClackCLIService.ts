@@ -6,11 +6,11 @@ import type {
   CLIConfirmContract,
   CLIInputContract,
   CLILoadingContract,
-  CLIPrintContract,
+  CLIPrintStepContract,
   CLIProgressContract,
   CLISelectContract,
   CLIService,
-  CLIWarnContract
+  CLIPrintWarnContract
 } from '@/services'
 
 export class ClackCLIService implements CLIService {
@@ -104,7 +104,7 @@ export class ClackCLIService implements CLIService {
     }
   }
 
-  public print(...request: CLIPrintContract.Request): CLIPrintContract.Response {
+  public printStep(...request: CLIPrintStepContract.Request): CLIPrintStepContract.Response {
     const message = request.join('\n')
 
     cli.log.step(message)
@@ -144,7 +144,7 @@ export class ClackCLIService implements CLIService {
     return result.value
   }
 
-  public warn(...request: CLIWarnContract.Request): CLIWarnContract.Response {
+  public printWarn(...request: CLIPrintWarnContract.Request): CLIPrintWarnContract.Response {
     const message = request.join('\n')
 
     cli.log.warn(message)

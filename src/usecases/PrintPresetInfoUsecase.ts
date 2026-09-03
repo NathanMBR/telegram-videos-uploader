@@ -53,7 +53,7 @@ export class PrintPresetInfoUsecase extends Usecase {
       `Date format: ${this.preset.postDescription.dateFormat}`
     ].join('\n')
 
-    this.cliService.print(presetInfo)
+    this.cliService.printStep(presetInfo)
 
     // Telegram info
     const telegramInfo = [
@@ -64,7 +64,7 @@ export class PrintPresetInfoUsecase extends Usecase {
       `Bot username: @${telegramBotSelfData.username}`
     ].join('\n')
 
-    this.cliService.print(telegramInfo)
+    this.cliService.printStep(telegramInfo)
 
     const shouldGoBack = await this.cliService.confirm({
       message: 'Return to menu?',
