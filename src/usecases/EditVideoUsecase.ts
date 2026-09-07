@@ -208,6 +208,11 @@ export class EditVideoUsecase extends Usecase {
 
     editingVideoLoading.stop()
 
-    return 'OK'
+    const shouldReturnToMenu = await this.cliService.confirm({
+      message: 'Return to menu?',
+      default: true
+    })
+
+    return shouldReturnToMenu ? 'MENU' : 'OK'
   }
 }

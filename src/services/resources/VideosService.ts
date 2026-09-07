@@ -120,6 +120,8 @@ export class VideosService {
       percentageDeltaReporter
     } = dto
 
+    const durationInMs = durationInSeconds * 1_000
+
     const { name: videoFileNameWithoutExtension, ext: videoFileExtension } =
       path.parse(videoFilePath)
 
@@ -217,11 +219,9 @@ export class VideosService {
 
           const outTimeMs = outTime / 1_000
 
-          const durationInMs = durationInSeconds * 1_000
-
           const reportedPercentage = Math.min((outTimeMs / durationInMs) * 100, 100)
 
-          const percentageDelta = Math.floor(reportedPercentage - currentPercentage)
+          const percentageDelta = reportedPercentage - currentPercentage
           if (percentageDelta <= 0) {
             continue
           }

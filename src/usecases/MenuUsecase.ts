@@ -38,6 +38,9 @@ export class MenuUsecase extends Usecase {
 
     const chosenActionResult = await chosenAction()
     if (chosenActionResult === 'MENU') {
+      // biome-ignore lint/suspicious/noConsole: easiest way to clear the screen
+      console.clear()
+
       return await this.execute()
     }
 

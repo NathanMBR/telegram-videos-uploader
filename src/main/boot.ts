@@ -39,6 +39,9 @@ export const boot = async () => {
 
   const menuResult = await menuUsecase.execute()
   if (menuResult === 'PRESET') {
+    // biome-ignore lint/suspicious/noConsole: easiest way to clear the screen
+    console.clear()
+
     await boot()
   }
 }

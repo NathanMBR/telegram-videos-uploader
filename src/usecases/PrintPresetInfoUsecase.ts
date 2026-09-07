@@ -22,7 +22,7 @@ export class PrintPresetInfoUsecase extends Usecase {
   async execute(): Promise<Usecase.ExecuteReturn> {
     const presetDataLoading = this.cliService.loading({
       loadingMessage: 'Loading preset data',
-      doneMessage: 'Loading done!'
+      doneMessage: 'Loading preset data done!'
     })
 
     presetDataLoading.start()
@@ -66,11 +66,11 @@ export class PrintPresetInfoUsecase extends Usecase {
 
     this.cliService.printStep(telegramInfo)
 
-    const shouldGoBack = await this.cliService.confirm({
+    const shouldReturnToMenu = await this.cliService.confirm({
       message: 'Return to menu?',
       default: true
     })
 
-    return shouldGoBack ? 'MENU' : 'OK'
+    return shouldReturnToMenu ? 'MENU' : 'OK'
   }
 }

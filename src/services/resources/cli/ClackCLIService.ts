@@ -1,4 +1,5 @@
 import * as cli from '@clack/prompts'
+import picocolors from 'picocolors'
 
 import { UsageError, UserExitError } from '@/errors'
 import type {
@@ -6,16 +7,19 @@ import type {
   CLIConfirmContract,
   CLIInputContract,
   CLILoadingContract,
+  CLIPrintErrorContract,
+  CLIPrintInfoContract,
   CLIPrintStepContract,
+  CLIPrintSuccessContract,
+  CLIPrintWarnContract,
   CLIProgressContract,
   CLISelectContract,
-  CLIService,
-  CLIPrintWarnContract
+  CLIService
 } from '@/services'
 
 export class ClackCLIService implements CLIService {
   constructor() {
-    cli.intro('Telegram Videos Uploader')
+    cli.intro(picocolors.inverse('Telegram Videos Uploader'))
   }
 
   private handleClackCancel() {
@@ -94,20 +98,47 @@ export class ClackCLIService implements CLIService {
   }
 
   public loading(request: CLILoadingContract.Request): CLILoadingContract.Response {
-    const { loadingMessage, doneMessage } = request
+    const { loadingMessage, doneMessage, cancelMessage } = request
 
     const spinner = cli.spinner()
 
     return {
-      start: () => spinner.start(loadingMessage),
-      stop: () => spinner.stop(doneMessage)
+      start: (message?: string) => spinner.start(message || loadingMessage || 'Started'),
+      stop: (message?: string) => spinner.stop(message || doneMessage || 'Stopped'),
+      cancel: (message?: string) => spinner.cancel(message || cancelMessage || 'Cancelled')
     }
+  }
+
+  public printError(...request: CLIPrintErrorContract.Request): CLIPrintErrorContract.Response {
+    const message = request.join('\n')
+
+    cli.log.error(message)
+  }
+
+  public printInfo(...request: CLIPrintInfoContract.Request): CLIPrintInfoContract.Response {
+    const message = request.join('\n')
+
+    cli.log.info(message)
   }
 
   public printStep(...request: CLIPrintStepContract.Request): CLIPrintStepContract.Response {
     const message = request.join('\n')
 
     cli.log.step(message)
+  }
+
+  public printSuccess(
+    ...request: CLIPrintSuccessContract.Request
+  ): CLIPrintSuccessContract.Response {
+    const message = request.join('\n')
+
+    cli.log.success(message)
+  }
+
+  public printWarn(...request: CLIPrintWarnContract.Request): CLIPrintWarnContract.Response {
+    const message = request.join('\n')
+
+    cli.log.warn(message)
   }
 
   public progress(request: CLIProgressContract.Request): CLIProgressContract.Response {
@@ -142,11 +173,5 @@ export class ClackCLIService implements CLIService {
     }
 
     return result.value
-  }
-
-  public printWarn(...request: CLIPrintWarnContract.Request): CLIPrintWarnContract.Response {
-    const message = request.join('\n')
-
-    cli.log.warn(message)
   }
 }

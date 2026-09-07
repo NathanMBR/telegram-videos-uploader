@@ -3,10 +3,13 @@ import type {
   CLIConfirmContract,
   CLIInputContract,
   CLILoadingContract,
+  CLIPrintErrorContract,
+  CLIPrintInfoContract,
   CLIPrintStepContract,
+  CLIPrintSuccessContract,
+  CLIPrintWarnContract,
   CLIProgressContract,
-  CLISelectContract,
-  CLIPrintWarnContract
+  CLISelectContract
 } from './cli'
 
 export interface CLIService
@@ -14,7 +17,10 @@ export interface CLIService
     CLIConfirmContract,
     CLIInputContract,
     CLILoadingContract,
+    CLIPrintErrorContract,
+    CLIPrintInfoContract,
     CLIPrintStepContract,
+    CLIPrintSuccessContract,
+    CLIPrintWarnContract,
     CLIProgressContract,
-    CLISelectContract,
-    CLIPrintWarnContract {}
+    CLISelectContract {}

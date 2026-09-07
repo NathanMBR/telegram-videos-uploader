@@ -48,11 +48,6 @@ export class UploadVideosUsecase extends Usecase {
       await this.videosService.listVideosFileNames(videosDirectory)
 
     const { videosFileNamesForConversion, videosFileNames } = listVideosFileNamesResponse
-    if (videosFileNames.length <= 0 && videosFileNamesForConversion.length <= 0) {
-      this.cliService.printWarn(`No files found at directory "${videosDirectory}"`)
-      return 'OK'
-    }
-
     if (videosFileNamesForConversion.length > 0) {
       const shouldConvert = await this.cliService.confirm({
         message: `Found ${videosFileNamesForConversion.length} files that could be uploaded if converted first. Convert them?`,
@@ -87,14 +82,23 @@ export class UploadVideosUsecase extends Usecase {
       }
     }
 
+    if (videosFileNames.length <= 0) {
+      this.cliService.printWarn(`No files found at directory "${videosDirectory}"`)
+
+      const shouldReturnToMenu = await this.cliService.confirm({
+        message: 'Return to menu?',
+        default: true
+      })
+
+      return shouldReturnToMenu ? 'MENU' : 'OK'
+    }
+
     const shouldAskProceed =
       videosMetadata.length <= 0 || videosFileNames.length !== videosMetadata.length
 
     if (videosMetadata.length <= 0) {
       this.cliService.printWarn('File "videos.json" is empty')
-    }
-
-    if (videosFileNames.length !== videosMetadata.length) {
+    } else if (videosFileNames.length !== videosMetadata.length) {
       this.cliService.printWarn(
         `Amount of files in provided directory (${videosFileNames.length}) doesn't match the amount of entries in "videos.json" (${videosMetadata.length})`
       )
@@ -125,26 +129,38 @@ export class UploadVideosUsecase extends Usecase {
       const logFinalStep = String(videosFileNames.length).padStart(logPadLength, '0')
       const logStepIndicator = `[${logCurrentStep}/${logFinalStep}]`
 
-      this.cliService.printStep(`\n${getSeparator(logStepIndicator, 5, 'EACH SIDE')}`)
-      this.cliService.printStep(`Looking for saved video with filename "${videoFileName}"...`)
+      this.cliService.printInfo(`${getSeparator(logStepIndicator, 5, 'EACH SIDE')}`)
+
+      const savedVideoLoader = this.cliService.loading({
+        loadingMessage: `Looking for saved video with file name "${videoFileName}"`,
+        doneMessage: `Found saved video with file name "${videoFileName}"!`,
+        cancelMessage: `Couldn't find saved video with file name "${videoFileName}".`
+      })
+
+      savedVideoLoader.start()
 
       let video = await this.videosRepository.getByFilename(videoFileName)
       if (video) {
-        this.cliService.printStep('Found!\n')
+        savedVideoLoader.stop()
 
         if (args.dryRun) {
           this.printDryRunMessage()
           continue
         }
       } else {
-        this.cliService.printStep('Not found.\n')
+        savedVideoLoader.cancel()
 
         if (args.dryRun) {
           this.printDryRunMessage()
           continue
         }
 
-        this.cliService.printStep('Saving into database...')
+        const savingVideoLoader = this.cliService.loading({
+          loadingMessage: `Saving video with file name ${videoFileName}`,
+          doneMessage: `Video with file name ${videoFileName} saved!`
+        })
+
+        savingVideoLoader.start()
 
         const videoMetadata = videosMetadata?.find(
           metadata => path.parse(metadata.filename).name === videoFileNameWithoutExtension
@@ -168,37 +184,34 @@ export class UploadVideosUsecase extends Usecase {
 
         video = await this.videosRepository.save(videoData)
 
-        this.cliService.printStep('Saved!\n')
+        savingVideoLoader.stop()
       }
 
       if (video.status === 'UPLOADED') {
-        this.cliService.printStep('Video already uploaded! Skipping...\n')
+        this.cliService.printSuccess('Video already uploaded! Skipping...')
         continue
       }
 
       const videoFileMetadata = await this.videosService.getVideoFileMetadata(videoFilePath)
-
-      this.cliService.printStep('Searching for cover image...')
 
       let videoThumbnailPath: string | undefined
       let videoCoverPath = await this.videosService.getVideoCoverPath(videoFilePath)
 
       const needsToExtractCover = !videoCoverPath
       if (needsToExtractCover) {
-        this.cliService.printStep(
-          'Cover image not found. It will be extracted from the video file itself.\n'
+        this.cliService.printWarn(
+          'Cover image not found. It will be extracted from the video file itself.'
         )
       } else {
         if (!videoCoverPath) {
           throw new ImplementationError('Unexpected undefined videoCoverPath')
         }
 
-        this.cliService.printStep('Cover image found!\n')
-        this.cliService.printStep('Generating thumbnail...')
+        this.cliService.printStep('Cover image found!')
 
         videoThumbnailPath = await this.videosService.convertVideoCoverToThumbnail(videoCoverPath)
 
-        this.cliService.printStep('Thumbnail generated!\n')
+        this.cliService.printStep('Thumbnail generated!')
       }
 
       const videoSegmentsDirectory = this.videosService.getVideoSegmentsDirectory({
@@ -208,10 +221,10 @@ export class UploadVideosUsecase extends Usecase {
 
       await this.videosService.deleteVideoSegments(videoSegmentsDirectory)
 
-      const baseSegmentingMessage = 'Segmenting...'
+      const baseSegmentingMessage = 'Segmenting video'
 
       const segmentingProgress = this.cliService.progress({
-        initialMessage: baseSegmentingMessage,
+        initialMessage: `${baseSegmentingMessage} (0%)`,
         progressMax: 100
       })
 
@@ -225,7 +238,9 @@ export class UploadVideosUsecase extends Usecase {
           segmentingPercentage += percentageDelta
 
           segmentingProgress.addToProgress(percentageDelta)
-          segmentingProgress.changeMessage(`${baseSegmentingMessage} (${segmentingPercentage})`)
+          segmentingProgress.changeMessage(
+            `${baseSegmentingMessage} (${Math.round(segmentingPercentage)}%)`
+          )
         }
       })
 
@@ -269,28 +284,27 @@ export class UploadVideosUsecase extends Usecase {
           await this.videosService.getVideoFileMetadata(videoSegmentPath)
 
         if (needsToExtractCover) {
-          this.cliService.printStep(
-            `Extracting cover image for video segment ${partCurrentString} of ${partTotalString}...`
-          )
-
           videoCoverPath = await this.telegramService.extractVideoCover({
             videoSegmentPath,
             durationInSeconds: videoSegmentFileMetadata.durationInSeconds
           })
 
-          this.cliService.printStep(`Extracted!\n`)
-          this.cliService.printStep(`Generating thumbnail...`)
+          this.cliService.printStep(
+            `Cover image for video segment ${partCurrentString} of ${partTotalString} extracted!`
+          )
 
           videoThumbnailPath = await this.telegramService.convertVideoCoverToThumbnail({
             videoCoverPath
           })
 
-          this.cliService.printStep('Thumbnail generated!\n')
+          this.cliService.printStep(
+            `Thumbnail for video segment ${partCurrentString} of ${partTotalString} generated!`
+          )
         }
 
         const uploadLoader = this.cliService.loading({
-          loadingMessage: `Uploading video segment ${partCurrentString} of ${partTotalString}...`,
-          doneMessage: `Video segment ${partCurrentString} of ${partTotalString} uploaded!\n`
+          loadingMessage: `Uploading video segment ${partCurrentString} of ${partTotalString}`,
+          doneMessage: `Video segment ${partCurrentString} of ${partTotalString} uploaded!`
         })
 
         uploadLoader.start()
@@ -318,13 +332,16 @@ export class UploadVideosUsecase extends Usecase {
 
       await this.videosRepository.setUploadedStatusById(video.id)
 
-      this.cliService.printStep('All video segments successfully uploaded!')
-
       await this.videosService.deleteVideoSegments(videoSegmentsDirectory)
     }
 
-    this.cliService.printStep('All videos successfully uploaded!')
+    this.cliService.printSuccess('All videos successfully uploaded!')
 
-    return 'OK'
+    const shouldReturnToMenu = await this.cliService.confirm({
+      message: 'Return to menu?',
+      default: true
+    })
+
+    return shouldReturnToMenu ? 'MENU' : 'OK'
   }
 }

@@ -1,12 +1,14 @@
 export namespace CLILoadingContract {
   export type Request = {
-    loadingMessage: string
-    doneMessage: string
+    loadingMessage?: string
+    doneMessage?: string
+    cancelMessage?: string
   }
 
   export type Response = {
-    start: () => void
-    stop: () => void
+    start: (message?: string) => void
+    stop: (message?: string) => void
+    cancel: (message?: string) => void
   }
 }
 

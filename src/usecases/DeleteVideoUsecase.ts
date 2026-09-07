@@ -52,7 +52,7 @@ export class DeleteVideoUsecase extends Usecase {
     })
 
     if (!deleteConfirmation) {
-      this.cliService.printStep('Deletion cancelled.')
+      this.cliService.printError('Deletion cancelled.')
       return 'MENU'
     }
 
@@ -79,6 +79,11 @@ export class DeleteVideoUsecase extends Usecase {
 
     deleteLoading.stop()
 
-    return 'OK'
+    const shouldReturnToMenu = await this.cliService.confirm({
+      message: 'Return to menu?',
+      default: true
+    })
+
+    return shouldReturnToMenu ? 'MENU' : 'OK'
   }
 }
