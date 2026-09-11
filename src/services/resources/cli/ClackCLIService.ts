@@ -19,6 +19,8 @@ import type {
 
 export class ClackCLIService implements CLIService {
   constructor() {
+    // biome-ignore lint/suspicious/noConsole: easiest way to clear the screen
+    console.clear()
     cli.intro(picocolors.inverse('Telegram Videos Uploader'))
   }
 
@@ -71,6 +73,7 @@ export class ClackCLIService implements CLIService {
 
     const result = await cli.text({
       message,
+      initialValue: defaultValue || '',
       defaultValue: defaultValue || '',
       validate: input => {
         if (!validator) {
