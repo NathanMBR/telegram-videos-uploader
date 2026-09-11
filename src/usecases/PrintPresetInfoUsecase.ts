@@ -20,17 +20,17 @@ export class PrintPresetInfoUsecase extends Usecase {
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {
+    const healthCheckError = await this.telegramService.runHealthCheck()
+    if (healthCheckError) {
+      throw healthCheckError
+    }
+
     const presetDataLoading = this.cliService.loading({
       loadingMessage: 'Loading preset data',
       doneMessage: 'Loading preset data done!'
     })
 
     presetDataLoading.start()
-
-    const healthCheckError = await this.telegramService.runHealthCheck()
-    if (healthCheckError) {
-      throw healthCheckError
-    }
 
     const [telegramChatData, telegramBotSelfData] = await Promise.all([
       this.telegramService.getChatData({

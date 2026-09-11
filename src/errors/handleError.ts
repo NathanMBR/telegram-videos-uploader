@@ -16,9 +16,16 @@ export const handleError = (error: unknown): number => {
 
   if (error instanceof UsageError) {
     logger.error(error.message)
-    return 0
+    return 1
   }
 
-  logger.fatal(error.message)
+  let errorMessage = error.message
+
+  if (error.stack) {
+    errorMessage += `\n${error.stack}`
+  }
+
+  logger.fatal(errorMessage)
+
   return 1
 }
