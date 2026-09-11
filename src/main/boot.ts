@@ -1,20 +1,16 @@
 import { args } from '@/config'
 import { DrizzleConnection } from '@/db'
-import {
-  ClackCLIService,
-  // InquirerCLIService,
-  PresetService
-} from '@/services'
+import { ClackCLIService, PresetService } from '@/services'
 import {
   DeleteVideoUsecase,
   EditVideoUsecase,
   MenuUsecase,
   PrintPresetInfoUsecase,
+  PrintVideoInfoUsecase,
   UploadVideosUsecase
 } from '@/usecases'
 
 export const boot = async () => {
-  // const cliService = new InquirerCLIService()
   const cliService = new ClackCLIService()
   const presetsService = new PresetService()
 
@@ -32,6 +28,7 @@ export const boot = async () => {
 
   const menuUsecase = new MenuUsecase(chosenPreset, cliService, [
     new PrintPresetInfoUsecase(chosenPreset, cliService),
+    new PrintVideoInfoUsecase(chosenPreset, cliService),
     new UploadVideosUsecase(chosenPreset, cliService),
     new EditVideoUsecase(chosenPreset, cliService),
     new DeleteVideoUsecase(chosenPreset, cliService)
