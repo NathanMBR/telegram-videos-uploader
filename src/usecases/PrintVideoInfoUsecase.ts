@@ -1,6 +1,6 @@
 import { type Preset, Usecase } from '@/domain'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
-import { TelegramService, type CLIService } from '@/services'
+import { type CLIService, TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
 export class PrintVideoInfoUsecase extends Usecase {
