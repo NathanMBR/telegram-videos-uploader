@@ -40,6 +40,7 @@ export class ClackCLIService implements CLIService {
       message,
       options: options.map(option => ({
         label: option.label,
+        hint: option.hint || '',
         value: {
           value: option.value
         }
@@ -74,7 +75,6 @@ export class ClackCLIService implements CLIService {
     const result = await cli.text({
       message,
       initialValue: defaultValue || '',
-      defaultValue: defaultValue || '',
       validate: input => {
         if (!validator) {
           return undefined
@@ -165,6 +165,7 @@ export class ClackCLIService implements CLIService {
       message,
       options: options.map(option => ({
         label: option.label,
+        hint: option.hint || '',
         value: {
           value: option.value
         }

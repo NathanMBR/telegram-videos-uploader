@@ -40,6 +40,7 @@ export class DeleteVideoUsecase extends Usecase {
 
         const options = videos.map(video => ({
           label: video.title,
+          hint: video.description,
           value: video
         }))
 
