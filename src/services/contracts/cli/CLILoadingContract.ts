@@ -8,6 +8,7 @@ export namespace CLILoadingContract {
   export type Response = {
     start: (message?: string) => void
     stop: (message?: string) => void
+    message: (message: string) => void
     cancel: (message?: string) => void
   }
 }

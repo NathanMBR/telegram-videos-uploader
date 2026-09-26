@@ -138,16 +138,30 @@ export namespace TelegramService {
       postDescription: string
       videoCoverPath?: string | undefined
       videoThumbnailPath?: string | undefined
+      retriesCount?: number
     }
 
-    export type Return = {
-      messageId: number
-      uploadedAt: Date
+    export namespace Return {
+      export type Success = {
+        success: true
+        messageId: number
+        uploadedAt: Date
+      }
+
+      export type Failure = {
+        success: false
+        error: Error
+      }
     }
+
+    export type Return = Return.Success | Return.Failure
   }
 }
 
 export class TelegramService {
+  private readonly TOO_MANY_REQUESTS_STATUS_CODE = 400
+  private readonly MAX_RETRIES = 5
+
   constructor(private readonly settings: TelegramService.Constructor.Settings) {}
 
   async convertVideoCoverToThumbnail(
@@ -467,7 +481,8 @@ export class TelegramService {
       durationInSeconds,
       postDescription,
       videoCoverPath,
-      videoThumbnailPath
+      videoThumbnailPath,
+      retriesCount = 0
     } = dto
 
     const sendVideoUrl = new URL(
@@ -516,15 +531,26 @@ export class TelegramService {
 
     const sendVideoResponse = (await sendVideoFetchResponse.json()) as TelegramAPI.SendVideoResponse
     if (!sendVideoResponse.ok) {
-      throw new UsageError(sendVideoResponse.description)
+      const allowRetry =
+        sendVideoFetchResponse.status === this.TOO_MANY_REQUESTS_STATUS_CODE &&
+        retriesCount <= this.MAX_RETRIES
+
+      return {
+        success: false,
+        error: new UsageError(sendVideoResponse.description, allowRetry)
+      }
     }
 
     const uploadedAt = new Date(sendVideoResponse.result.date * oneSecondInMilliseconds)
     if (Number.isNaN(uploadedAt.getTime())) {
-      throw new ImplementationError('Invalid date returned from Telegram post')
+      return {
+        success: false,
+        error: new ImplementationError('Invalid date returned from Telegram post')
+      }
     }
 
     return {
+      success: true,
       messageId: sendVideoResponse.result.message_id,
       uploadedAt
     }

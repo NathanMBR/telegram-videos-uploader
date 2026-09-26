@@ -108,6 +108,7 @@ export class ClackCLIService implements CLIService {
     return {
       start: (message?: string) => spinner.start(message || loadingMessage || 'Started'),
       stop: (message?: string) => spinner.stop(message || doneMessage || 'Stopped'),
+      message: (message: string) => spinner.message(message),
       cancel: (message?: string) => spinner.cancel(message || cancelMessage || 'Cancelled')
     }
   }

@@ -1,9 +1,10 @@
 import path from 'node:path'
+import timers from 'node:timers/promises'
 
 import { args } from '@/config'
 import type { Video } from '@/db'
 import { type Preset, Usecase, VideoMetadata } from '@/domain'
-import { ImplementationError } from '@/errors'
+import { ImplementationError, UsageError } from '@/errors'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import { type CLIService, TelegramService, VideosService } from '@/services'
 import { getMarkdownEscapedText, getSeparator } from '@/utils'
@@ -302,14 +303,15 @@ export class UploadVideosUsecase extends Usecase {
           )
         }
 
+        const loadingMessage = `Uploading video segment ${partCurrentString} of ${partTotalString}`
         const uploadLoader = this.cliService.loading({
-          loadingMessage: `Uploading video segment ${partCurrentString} of ${partTotalString}`,
+          loadingMessage,
           doneMessage: `Video segment ${partCurrentString} of ${partTotalString} uploaded!`
         })
 
         uploadLoader.start()
 
-        const telegramPost = await this.telegramService.uploadVideoToChannel({
+        let telegramPostReturn = await this.telegramService.uploadVideoToChannel({
           channelId: this.preset.telegram.channelId,
           videoPath: videoSegmentPath,
           width: videoSegmentFileMetadata.width,
@@ -320,9 +322,47 @@ export class UploadVideosUsecase extends Usecase {
           videoThumbnailPath
         })
 
+        let retriesCount = 0
+        while (!telegramPostReturn.success) {
+          retriesCount++
+
+          const { error } = telegramPostReturn
+
+          if (!UsageError.isInstance(error) || !error.allowRetry) {
+            uploadLoader.cancel(
+              `Error while uploading video segment ${partCurrentString} of ${partTotalString}`
+            )
+
+            throw error
+          }
+
+          const minutesToWait = 1
+          const oneMinuteInSeconds = 60
+          const oneSecondsInMs = 1_000
+          const timeToWaitInMs = minutesToWait * oneMinuteInSeconds * oneSecondsInMs
+
+          uploadLoader.message(
+            `Upload limit reached! Waiting ${minutesToWait * oneMinuteInSeconds} seconds before retrying`
+          )
+          await timers.setTimeout(timeToWaitInMs)
+          uploadLoader.message(loadingMessage)
+
+          telegramPostReturn = await this.telegramService.uploadVideoToChannel({
+            channelId: this.preset.telegram.channelId,
+            videoPath: videoSegmentPath,
+            width: videoSegmentFileMetadata.width,
+            height: videoSegmentFileMetadata.height,
+            durationInSeconds: videoSegmentFileMetadata.durationInSeconds,
+            postDescription,
+            videoCoverPath,
+            videoThumbnailPath,
+            retriesCount
+          })
+        }
+
         await this.videoUploadsRepository.save({
-          telegramPostId: telegramPost.messageId,
-          uploadedAt: telegramPost.uploadedAt,
+          telegramPostId: telegramPostReturn.messageId,
+          uploadedAt: telegramPostReturn.uploadedAt,
           videoId: video.id,
           part: partCurrent
         })

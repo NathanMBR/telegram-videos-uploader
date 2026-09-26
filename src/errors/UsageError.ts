@@ -1,5 +1,12 @@
 export class UsageError extends Error {
-  constructor(public readonly message: string) {
+  public static isInstance(error: Error): error is UsageError {
+    return error instanceof UsageError
+  }
+
+  constructor(
+    public readonly message: string,
+    public readonly allowRetry = false
+  ) {
     super(message)
   }
 }
