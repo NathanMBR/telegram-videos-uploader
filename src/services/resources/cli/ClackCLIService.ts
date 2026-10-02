@@ -18,6 +18,8 @@ import type {
 } from '@/services'
 
 export class ClackCLIService implements CLIService {
+  private readonly MAX_HINT_CHARACTERS_SIZE = 350
+
   constructor() {
     // biome-ignore lint/suspicious/noConsole: easiest way to clear the screen
     console.clear()
@@ -27,6 +29,19 @@ export class ClackCLIService implements CLIService {
   private handleClackCancel() {
     cli.cancel('Canceled')
     return new UserExitError()
+  }
+
+  private handleHint(hint: string | null | undefined) {
+    if (!hint) {
+      return ''
+    }
+
+    let result = hint.trim().slice(0, this.MAX_HINT_CHARACTERS_SIZE).split('\n')[0] || ''
+    if (result !== hint) {
+      result += ' [...]'
+    }
+
+    return result
   }
 
   async autocomplete<T>(
@@ -40,7 +55,7 @@ export class ClackCLIService implements CLIService {
       message,
       options: options.map(option => ({
         label: option.label,
-        hint: option.hint || '',
+        hint: this.handleHint(option.hint),
         value: {
           value: option.value
         }
@@ -166,7 +181,7 @@ export class ClackCLIService implements CLIService {
       message,
       options: options.map(option => ({
         label: option.label,
-        hint: option.hint || '',
+        hint: this.handleHint(option.hint),
         value: {
           value: option.value
         }
