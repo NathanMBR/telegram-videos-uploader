@@ -31,8 +31,8 @@ export class UploadVideosUsecase extends Usecase {
 
     this.videosService = new VideosService()
 
-    this.videosRepository = new VideosRepository()
-    this.videoUploadsRepository = new VideoUploadsRepository()
+    this.videosRepository = new VideosRepository(this.preset.origin)
+    this.videoUploadsRepository = new VideoUploadsRepository(this.preset.origin)
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {

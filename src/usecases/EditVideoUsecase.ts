@@ -18,8 +18,8 @@ export class EditVideoUsecase extends Usecase {
   ) {
     super()
 
-    this.videosRepository = new VideosRepository()
-    this.videoUploadsRepository = new VideoUploadsRepository()
+    this.videosRepository = new VideosRepository(this.preset.origin)
+    this.videoUploadsRepository = new VideoUploadsRepository(this.preset.origin)
 
     this.telegramService = new TelegramService({
       apiBaseUrl: preset.telegram.apiBaseUrl,
@@ -36,7 +36,7 @@ export class EditVideoUsecase extends Usecase {
     const selectedVideo = await this.cliService.autocomplete({
       message: 'Select the video to edit:',
       getOptions: async input => {
-        const videos = await this.videosRepository.getAll(input || '', this.preset.origin)
+        const videos = await this.videosRepository.getAll(input || '')
 
         const options = videos.map(video => ({
           label: video.title,

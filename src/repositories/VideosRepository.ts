@@ -1,4 +1,4 @@
-import { and, asc, eq, like, or } from 'drizzle-orm'
+import { and, asc, count, eq, isNull, like, or } from 'drizzle-orm'
 
 import { DrizzleConnection, type Video, videosTable } from '@/db'
 import { ImplementationError, UsageError } from '@/errors'
@@ -6,7 +6,9 @@ import { ImplementationError, UsageError } from '@/errors'
 export class VideosRepository {
   private readonly drizzle = DrizzleConnection.instance
 
-  async getAll(search: string = '', origin?: string | null): Promise<Array<Video>> {
+  constructor(private readonly origin: string | null | undefined) {}
+
+  async getAll(search: string = ''): Promise<Array<Video>> {
     const videos = await this.drizzle
       .select()
       .from(videosTable)
@@ -20,7 +22,7 @@ export class VideosRepository {
               )
             : undefined,
 
-          origin ? eq(videosTable.origin, origin) : undefined
+          this.origin ? eq(videosTable.origin, this.origin) : undefined
         )
       )
       .orderBy(asc(videosTable.title))
@@ -79,5 +81,24 @@ export class VideosRepository {
     }
 
     return video
+  }
+
+  async count(): Promise<number> {
+    const [result] = await this.drizzle
+      .select({ count: count() })
+      .from(videosTable)
+      .where(
+        this.origin === null
+          ? isNull(videosTable.origin)
+          : this.origin
+            ? eq(videosTable.origin, this.origin)
+            : undefined
+      )
+
+    if (!result) {
+      throw new ImplementationError('Unable to count videos')
+    }
+
+    return result.count
   }
 }

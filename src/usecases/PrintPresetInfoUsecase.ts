@@ -1,4 +1,5 @@
 import { type Preset, Usecase } from '@/domain'
+import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import { type CLIService, TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
@@ -6,6 +7,8 @@ export class PrintPresetInfoUsecase extends Usecase {
   public readonly actionTitle = 'Check preset data'
 
   private readonly telegramService: TelegramService
+  private readonly videosRepository: VideosRepository
+  private readonly videoUploadsRepository: VideoUploadsRepository
 
   constructor(
     protected readonly preset: Preset,
@@ -17,6 +20,9 @@ export class PrintPresetInfoUsecase extends Usecase {
       apiBaseUrl: preset.telegram.apiBaseUrl,
       botToken: preset.telegram.botToken
     })
+
+    this.videosRepository = new VideosRepository(this.preset.origin)
+    this.videoUploadsRepository = new VideoUploadsRepository(this.preset.origin)
   }
 
   async execute(): Promise<Usecase.ExecuteReturn> {
@@ -32,11 +38,20 @@ export class PrintPresetInfoUsecase extends Usecase {
 
     presetDataLoading.start()
 
-    const [telegramChatData, telegramBotSelfData] = await Promise.all([
+    const [
+      telegramChatData,
+      telegramBotSelfData,
+      videosCount,
+      videoUploadsCount,
+      videoUploadsPartsCount
+    ] = await Promise.all([
       this.telegramService.getChatData({
         chatId: this.preset.telegram.channelId
       }),
-      this.telegramService.getSelfData()
+      this.telegramService.getSelfData(),
+      this.videosRepository.count(),
+      this.videoUploadsRepository.count(),
+      this.videoUploadsRepository.countParts()
     ])
 
     presetDataLoading.stop()
@@ -65,6 +80,34 @@ export class PrintPresetInfoUsecase extends Usecase {
     ].join('\n')
 
     this.cliService.printStep(telegramInfo)
+
+    // Database info
+    const databaseInfo = [
+      `\n${getSeparator('DATABASE')}`,
+      `Stored videos: ${videosCount}`,
+      `Stored videos by quantity of parts:`,
+      videoUploadsPartsCount
+        .map(
+          (partCount, index) =>
+            // biome-ignore-start lint/style/noNonNullAssertion: checked previously
+            `* With exactly ${partCount.part} part${index === 0 ? '' : 's'}: ${
+              partCount.count -
+              (videoUploadsPartsCount.length > index + 1
+                ? videoUploadsPartsCount[index + 1]!.count
+                : 0)
+            }`
+          // biome-ignore-end lint/style/noNonNullAssertion: checked previously
+        )
+        .join('\n'),
+      '',
+      `Stored video uploads: ${videoUploadsCount}`,
+      `Stored video uploads by parts:`,
+      videoUploadsPartsCount
+        .map(partCount => `* Part ${partCount.part}: ${partCount.count}`)
+        .join('\n')
+    ].join('\n')
+
+    this.cliService.printStep(databaseInfo)
 
     const shouldReturnToMenu = await this.cliService.confirm({
       message: 'Return to menu?',
