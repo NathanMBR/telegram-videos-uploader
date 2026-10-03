@@ -49,7 +49,7 @@ export class DeleteVideoUsecase extends Usecase {
     })
 
     const deleteConfirmation = await this.cliService.confirm({
-      message: 'Are you sure you want to delete?',
+      message: `Are you sure you want to delete video with ID ${selectedVideo.id}?`,
       default: false
     })
 
