@@ -1,6 +1,5 @@
 import { args } from '@/config'
 import { type Preset, Usecase } from '@/domain'
-import { ImplementationError } from '@/errors'
 import { VideosRepository, VideoUploadsRepository } from '@/repositories'
 import { type CLIService, TelegramService } from '@/services'
 
@@ -58,11 +57,32 @@ export class DeleteVideoUsecase extends Usecase {
       return 'MENU'
     }
 
+    if (args.dryRun) {
+      this.printDryRunMessage()
+      return 'OK'
+    }
+
+    const deleteLoading = this.cliService.loading({
+      loadingMessage: 'Deleting video',
+      doneMessage: 'Successfully deleted!'
+    })
+
     const videoUploads = await this.videoUploadsRepository.getAll(selectedVideo.id)
 
     const [firstVideoUpload] = videoUploads
     if (!firstVideoUpload) {
-      throw new ImplementationError('Undefined firstVideoUpload')
+      deleteLoading.start()
+
+      await this.videosRepository.deleteFromId(selectedVideo.id)
+
+      deleteLoading.stop()
+
+      const shouldReturnToMenu = await this.cliService.confirm({
+        message: 'Return to menu?',
+        default: true
+      })
+
+      return shouldReturnToMenu ? 'MENU' : 'OK'
     }
 
     const twoDaysInMilliseconds = 1_000 * 60 * 60 * 24 * 2
@@ -89,16 +109,6 @@ export class DeleteVideoUsecase extends Usecase {
         return shouldReturnToMenu ? 'MENU' : 'OK'
       }
     }
-
-    if (args.dryRun) {
-      this.printDryRunMessage()
-      return 'OK'
-    }
-
-    const deleteLoading = this.cliService.loading({
-      loadingMessage: 'Deleting video',
-      doneMessage: 'Successfully deleted!'
-    })
 
     deleteLoading.start()
 
