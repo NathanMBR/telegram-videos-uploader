@@ -11,12 +11,27 @@ import { ImplementationError, UsageError } from '@/errors'
 import { checkPathAccessibility, execFile, spawn } from '@/utils'
 
 export namespace VideosService {
+  type PercentageDeltaReporter = (percentageDelta: number) => void
+
+  export type ConvertVideoToMp4DTO = {
+    videoPath: string
+    reporter?: {
+      durationInSeconds: number
+      percentageDeltaReporter: PercentageDeltaReporter
+    }
+  }
+
+  export type CreateFfmpegProgressParserDTO = {
+    durationInSeconds: number
+    percentageDeltaReporter?: PercentageDeltaReporter | undefined
+  }
+
   export type GenerateVideoSegmentsDTO = {
     videoFilePath: string
     videoSegmentsDirectory: string
     sizeInBytes: number
     durationInSeconds: number
-    percentageDeltaReporter?: (percentageDelta: number) => void
+    percentageDeltaReporter?: PercentageDeltaReporter
   }
 
   export type GetVideoSegmentsDirectoryDTO = {
@@ -74,7 +89,9 @@ export class VideosService {
     return thumbnailPath
   }
 
-  async convertVideoToMp4(videoPath: string): Promise<string> {
+  async convertVideoToMp4(dto: VideosService.ConvertVideoToMp4DTO): Promise<string> {
+    const { videoPath, reporter } = dto
+
     const videoPathParsed = path.parse(videoPath)
 
     const convertedFileName = `${videoPathParsed.name}.mp4`
@@ -88,12 +105,78 @@ export class VideosService {
       'libx264',
       '-c:a',
       'aac',
+      '-progress',
+      'pipe:1',
       convertedFilePath
     ]
 
-    await execFile('ffmpeg', ffmpegCommandArgs)
+    const parseFfmpegProgress = this.createFfmpegProgressParser({
+      durationInSeconds: reporter?.durationInSeconds || 0,
+      percentageDeltaReporter: reporter?.percentageDeltaReporter
+    })
+
+    await spawn({
+      command: 'ffmpeg',
+      args: ffmpegCommandArgs,
+      onData: data => {
+        if (!reporter) {
+          return
+        }
+
+        parseFfmpegProgress(data)
+      }
+    })
 
     return convertedFileName
+  }
+
+  createFfmpegProgressParser(
+    dto: VideosService.CreateFfmpegProgressParserDTO
+  ): (data: Buffer<ArrayBufferLike>) => void {
+    const { durationInSeconds, percentageDeltaReporter } = dto
+
+    let currentPercentage = 0
+    let ffmpegBufferString = ''
+
+    return (data: Buffer<ArrayBufferLike>) => {
+      if (!percentageDeltaReporter) {
+        return
+      }
+
+      ffmpegBufferString += data.toString()
+
+      const lines = ffmpegBufferString.split('\n')
+
+      ffmpegBufferString = lines.pop() || ''
+
+      for (const line of lines) {
+        const outTimeKey = 'out_time_ms='
+
+        if (!line.startsWith(outTimeKey)) {
+          continue
+        }
+
+        const outTimeString = line.split(outTimeKey)[1]?.trim() || ''
+        const outTime = Number(outTimeString)
+        if (Number.isNaN(outTime) || !Number.isFinite(outTime)) {
+          continue
+        }
+
+        const outTimeMs = outTime / 1_000
+
+        const durationInMs = durationInSeconds * 1_000
+        const reportedPercentage = Math.min((outTimeMs / durationInMs) * 100, 100)
+
+        const percentageDelta = reportedPercentage - currentPercentage
+        if (percentageDelta <= 0) {
+          continue
+        }
+
+        currentPercentage = Math.max(reportedPercentage, currentPercentage)
+
+        percentageDeltaReporter(percentageDelta)
+      }
+    }
   }
 
   async deleteVideoSegments(videoSegmentsDirectory: string): Promise<void> {
@@ -119,8 +202,6 @@ export class VideosService {
       durationInSeconds,
       percentageDeltaReporter
     } = dto
-
-    const durationInMs = durationInSeconds * 1_000
 
     const { name: videoFileNameWithoutExtension, ext: videoFileExtension } =
       path.parse(videoFilePath)
@@ -187,8 +268,10 @@ export class VideosService {
       ffmpegCommandOutputFilePath
     ]
 
-    let currentPercentage = 0
-    let ffmpegBufferString = ''
+    const parseFfmpegProgress = this.createFfmpegProgressParser({
+      durationInSeconds,
+      percentageDeltaReporter
+    })
 
     await spawn({
       command: 'ffmpeg',
@@ -198,38 +281,7 @@ export class VideosService {
           return
         }
 
-        ffmpegBufferString += data.toString()
-
-        const lines = ffmpegBufferString.split('\n')
-
-        ffmpegBufferString = lines.pop() || ''
-
-        for (const line of lines) {
-          const outTimeKey = 'out_time_ms='
-
-          if (!line.startsWith(outTimeKey)) {
-            continue
-          }
-
-          const outTimeString = line.split(outTimeKey)[1]?.trim() || ''
-          const outTime = Number(outTimeString)
-          if (Number.isNaN(outTime) || !Number.isFinite(outTime)) {
-            continue
-          }
-
-          const outTimeMs = outTime / 1_000
-
-          const reportedPercentage = Math.min((outTimeMs / durationInMs) * 100, 100)
-
-          const percentageDelta = reportedPercentage - currentPercentage
-          if (percentageDelta <= 0) {
-            continue
-          }
-
-          currentPercentage = Math.max(reportedPercentage, currentPercentage)
-
-          percentageDeltaReporter(percentageDelta)
-        }
+        parseFfmpegProgress(data)
       }
     })
   }

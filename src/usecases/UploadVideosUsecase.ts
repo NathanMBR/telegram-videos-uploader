@@ -59,13 +59,6 @@ export class UploadVideosUsecase extends Usecase {
         const convertedVideosFileNames: Array<string> = []
 
         for (const videoFileName of videosFileNamesForConversion) {
-          const conversionLoader = this.cliService.loading({
-            loadingMessage: `Converting file "${videoFileName}"...`,
-            doneMessage: `Conversion of file "${videoFileName}" done!`
-          })
-
-          conversionLoader.start()
-
           const videoPath = path.join(videosDirectory, videoFileName)
 
           if (args.dryRun) {
@@ -73,10 +66,35 @@ export class UploadVideosUsecase extends Usecase {
             continue
           }
 
-          await this.videosService.convertVideoToMp4(videoPath)
-          convertedVideosFileNames.push(videoFileName)
+          const baseConvertingMessage = `Converting file "${videoFileName}"`
 
-          conversionLoader.stop()
+          const conversionProgress = this.cliService.progress({
+            initialMessage: `${baseConvertingMessage} (0%)`,
+            progressMax: 100
+          })
+
+          const { durationInSeconds } = await this.videosService.getVideoFileMetadata(videoPath)
+
+          let conversionPercentage = 0
+
+          const convertedVideoFileName = await this.videosService.convertVideoToMp4({
+            videoPath,
+            reporter: {
+              durationInSeconds,
+              percentageDeltaReporter: percentageDelta => {
+                conversionPercentage += percentageDelta
+
+                conversionProgress.addToProgress(percentageDelta)
+                conversionProgress.changeMessage(
+                  `${baseConvertingMessage} (${Math.round(conversionPercentage)}%)`
+                )
+              }
+            }
+          })
+
+          conversionProgress.finish('Conversion done!')
+
+          convertedVideosFileNames.push(convertedVideoFileName)
         }
 
         videosFileNames.push(...convertedVideosFileNames)
@@ -224,7 +242,7 @@ export class UploadVideosUsecase extends Usecase {
 
       const baseSegmentingMessage = 'Segmenting video'
 
-      const segmentingProgress = this.cliService.progress({
+      const segmentationProgress = this.cliService.progress({
         initialMessage: `${baseSegmentingMessage} (0%)`,
         progressMax: 100
       })
@@ -238,14 +256,14 @@ export class UploadVideosUsecase extends Usecase {
         percentageDeltaReporter: percentageDelta => {
           segmentingPercentage += percentageDelta
 
-          segmentingProgress.addToProgress(percentageDelta)
-          segmentingProgress.changeMessage(
+          segmentationProgress.addToProgress(percentageDelta)
+          segmentationProgress.changeMessage(
             `${baseSegmentingMessage} (${Math.round(segmentingPercentage)}%)`
           )
         }
       })
 
-      segmentingProgress.finish('Segmentation done!')
+      segmentationProgress.finish('Segmentation done!')
 
       const videoSegmentsFileNames =
         await this.videosService.listVideoSegmentsFileNames(videoSegmentsDirectory)
