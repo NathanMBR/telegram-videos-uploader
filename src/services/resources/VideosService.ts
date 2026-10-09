@@ -386,15 +386,23 @@ export class VideosService {
       )
     }
 
-    const fileNames = await fs.readdir(videosDirectory)
+    const dirents = await fs.readdir(videosDirectory, { withFileTypes: true })
+    const fileNames = dirents.filter(dirent => dirent.isFile()).map(dirent => dirent.name)
 
     const videosFileNames = fileNames.filter(fileName =>
       this.acceptedVideoFormats.some(format => fileName.endsWith(format))
     )
 
-    const videosFileNamesForConversion = fileNames.filter(fileName =>
-      this.acceptedWithConversionVideoFormats.some(format => fileName.endsWith(format))
-    )
+    const videosFileNamesForConversion = fileNames
+      .filter(fileNameToConvert =>
+        this.acceptedWithConversionVideoFormats.some(format => fileNameToConvert.endsWith(format))
+      )
+      .filter(
+        fileNameToConvert =>
+          !videosFileNames
+            .map(fileName => path.parse(fileName).name)
+            .includes(path.parse(fileNameToConvert).name)
+      )
 
     return {
       videosFileNames,
