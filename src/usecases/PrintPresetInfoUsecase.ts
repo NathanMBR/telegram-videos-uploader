@@ -42,6 +42,7 @@ export class PrintPresetInfoUsecase extends Usecase {
       telegramChatData,
       telegramBotSelfData,
       videosCount,
+      videosAvailabilitiesCount,
       videoUploadsCount,
       videoUploadsPartsCount
     ] = await Promise.all([
@@ -50,6 +51,7 @@ export class PrintPresetInfoUsecase extends Usecase {
       }),
       this.telegramService.getSelfData(),
       this.videosRepository.count(),
+      this.videosRepository.countAvailabilities(),
       this.videoUploadsRepository.count(),
       this.videoUploadsRepository.countParts()
     ])
@@ -72,7 +74,7 @@ export class PrintPresetInfoUsecase extends Usecase {
 
     // Telegram info
     const telegramInfo = [
-      `\n${getSeparator('TELEGRAM')}`,
+      `${getSeparator('TELEGRAM')}`,
       `Channel title: ${telegramChatData.title}`,
       `Channel description: ${telegramChatData.description || '(empty)'}`,
       `Bot title: ${telegramBotSelfData.firstName} ${telegramBotSelfData.lastName || ''}`,
@@ -83,7 +85,7 @@ export class PrintPresetInfoUsecase extends Usecase {
 
     // Database info
     const databaseInfo = [
-      `\n${getSeparator('DATABASE')}`,
+      `${getSeparator('DATABASE')}`,
       `Stored videos: ${videosCount}`,
       `Stored videos by quantity of parts:`,
       videoUploadsPartsCount
@@ -98,6 +100,11 @@ export class PrintPresetInfoUsecase extends Usecase {
             }`
           // biome-ignore-end lint/style/noNonNullAssertion: checked previously
         )
+        .join('\n'),
+      '',
+      `Stored videos by availability:`,
+      videosAvailabilitiesCount
+        .map(availabilityCount => `* ${availabilityCount.availability}: ${availabilityCount.count}`)
         .join('\n'),
       '',
       `Stored video uploads: ${videoUploadsCount}`,

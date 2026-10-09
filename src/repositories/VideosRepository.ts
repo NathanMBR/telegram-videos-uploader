@@ -8,6 +8,48 @@ export class VideosRepository {
 
   constructor(private readonly origin: string | null | undefined) {}
 
+  async count(): Promise<number> {
+    const [result] = await this.drizzle
+      .select({ count: count() })
+      .from(videosTable)
+      .where(
+        this.origin === null
+          ? isNull(videosTable.origin)
+          : this.origin
+            ? eq(videosTable.origin, this.origin)
+            : undefined
+      )
+
+    if (!result) {
+      throw new ImplementationError('Unable to count videos')
+    }
+
+    return result.count
+  }
+
+  async countAvailabilities(): Promise<
+    Array<{ availability: Video['availability']; count: number }>
+  > {
+    const result = await this.drizzle
+      .select({ availability: videosTable.availability, count: count() })
+      .from(videosTable)
+      .where(
+        this.origin === null
+          ? isNull(videosTable.origin)
+          : this.origin
+            ? eq(videosTable.origin, this.origin)
+            : undefined
+      )
+      .groupBy(videosTable.availability)
+      .orderBy(asc(videosTable.availability))
+
+    return result
+  }
+
+  async deleteFromId(id: Video['id']): Promise<void> {
+    await this.drizzle.delete(videosTable).where(eq(videosTable.id, id))
+  }
+
   async getAll(search: string = ''): Promise<Array<Video>> {
     const videos = await this.drizzle
       .select()
@@ -28,10 +70,6 @@ export class VideosRepository {
       .orderBy(asc(videosTable.title))
 
     return videos
-  }
-
-  async deleteFromId(id: Video['id']): Promise<void> {
-    await this.drizzle.delete(videosTable).where(eq(videosTable.id, id))
   }
 
   async getByFilename(fileName: Video['filename']): Promise<Video | undefined> {
@@ -81,24 +119,5 @@ export class VideosRepository {
     }
 
     return video
-  }
-
-  async count(): Promise<number> {
-    const [result] = await this.drizzle
-      .select({ count: count() })
-      .from(videosTable)
-      .where(
-        this.origin === null
-          ? isNull(videosTable.origin)
-          : this.origin
-            ? eq(videosTable.origin, this.origin)
-            : undefined
-      )
-
-    if (!result) {
-      throw new ImplementationError('Unable to count videos')
-    }
-
-    return result.count
   }
 }
