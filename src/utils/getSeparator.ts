@@ -1,3 +1,5 @@
+import { ImplementationError } from '@/errors'
+
 type GetSeparatorMode = 'EACH SIDE' | 'TOTAL CHARS'
 
 export const getSeparator = (
@@ -8,6 +10,10 @@ export const getSeparator = (
   const lineChar = '-'
   const linesTotalLength =
     mode === 'TOTAL CHARS' ? targetCharsQuantity - text.length - 2 : targetCharsQuantity * 2
+
+  if (linesTotalLength <= 0) {
+    throw new ImplementationError(`Invalid lines length: ${linesTotalLength}`)
+  }
 
   const leftLineLength = Math.ceil(linesTotalLength / 2)
   const leftLine = new Array(leftLineLength).fill(lineChar).join('')
