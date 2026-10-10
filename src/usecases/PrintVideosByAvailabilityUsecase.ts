@@ -4,7 +4,7 @@ import { type CLIService, TelegramService } from '@/services'
 import { getSeparator } from '@/utils'
 
 export class PrintVideosByAvailabilityUsecase extends Usecase {
-  public readonly actionTitle = 'List videos by availability'
+  public readonly actionTitle = 'Check videos list by availability'
 
   private readonly videosRepository: VideosRepository
   private readonly telegramService: TelegramService
