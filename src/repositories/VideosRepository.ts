@@ -72,6 +72,26 @@ export class VideosRepository {
     return videos
   }
 
+  async getAllByAvailability(availability: Video['availability']): Promise<Array<Video>> {
+    const result = await this.drizzle
+      .select()
+      .from(videosTable)
+      .where(
+        and(
+          this.origin === null
+            ? isNull(videosTable.origin)
+            : this.origin
+              ? eq(videosTable.origin, this.origin)
+              : undefined,
+
+          eq(videosTable.availability, availability)
+        )
+      )
+      .orderBy(asc(videosTable.title))
+
+    return result
+  }
+
   async getByFilename(fileName: Video['filename']): Promise<Video | undefined> {
     const [video] = await this.drizzle
       .select()

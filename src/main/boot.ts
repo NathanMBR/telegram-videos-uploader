@@ -7,6 +7,7 @@ import {
   MenuUsecase,
   PrintPresetInfoUsecase,
   PrintVideoInfoUsecase,
+  PrintVideosByAvailabilityUsecase,
   UploadVideosUsecase
 } from '@/usecases'
 
@@ -27,9 +28,10 @@ export const boot = async () => {
   await DrizzleConnection.runMigrations()
 
   const menuUsecase = new MenuUsecase(chosenPreset, cliService, [
+    new UploadVideosUsecase(chosenPreset, cliService),
     new PrintPresetInfoUsecase(chosenPreset, cliService),
     new PrintVideoInfoUsecase(chosenPreset, cliService),
-    new UploadVideosUsecase(chosenPreset, cliService),
+    new PrintVideosByAvailabilityUsecase(chosenPreset, cliService),
     new EditVideoUsecase(chosenPreset, cliService),
     new DeleteVideoUsecase(chosenPreset, cliService)
   ])
