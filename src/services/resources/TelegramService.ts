@@ -23,14 +23,6 @@ export namespace TelegramService {
     }
   }
 
-  export namespace ConvertVideoCoverToThumbnail {
-    export type DTO = {
-      videoCoverPath: string
-    }
-
-    export type Return = string
-  }
-
   export namespace DeleteMessage {
     export type DTO = {
       channelId: string
@@ -163,34 +155,6 @@ export class TelegramService {
   private readonly MAX_RETRIES = 5
 
   constructor(private readonly settings: TelegramService.Constructor.Settings) {}
-
-  async convertVideoCoverToThumbnail(
-    dto: TelegramService.ConvertVideoCoverToThumbnail.DTO
-  ): Promise<TelegramService.ConvertVideoCoverToThumbnail.Return> {
-    const { videoCoverPath } = dto
-
-    const videoCoverPathParsed = path.parse(videoCoverPath)
-
-    const videoThumbnailPath = path.join(
-      videoCoverPathParsed.dir,
-      `${videoCoverPathParsed.name}_thumbnail.jpg`
-    )
-
-    const ffmpegCommandArgs = [
-      '-i',
-      videoCoverPath,
-      '-vf',
-      'scale=320:180:force_original_aspect_ratio=decrease,pad=320:180:(ow-iw)/2:(oh-ih)/2',
-      '-q:v',
-      '3',
-      '-y',
-      videoThumbnailPath
-    ]
-
-    await execFile('ffmpeg', ffmpegCommandArgs)
-
-    return videoThumbnailPath
-  }
 
   async deleteMessage(
     dto: TelegramService.DeleteMessage.DTO

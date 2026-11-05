@@ -1,5 +1,6 @@
 export * from './checkPathAccessibility'
 export * from './execFile'
+export * from './getFfmpegEscapedText'
 export * from './getMarkdownEscapedText'
 export * from './getSeparator'
 export * from './spawn'

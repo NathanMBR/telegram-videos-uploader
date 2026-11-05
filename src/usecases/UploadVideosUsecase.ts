@@ -312,9 +312,7 @@ export class UploadVideosUsecase extends Usecase {
             `Cover image for video segment ${partCurrentString} of ${partTotalString} extracted!`
           )
 
-          videoThumbnailPath = await this.telegramService.convertVideoCoverToThumbnail({
-            videoCoverPath
-          })
+          videoThumbnailPath = await this.videosService.convertVideoCoverToThumbnail(videoCoverPath)
 
           this.cliService.printStep(
             `Thumbnail for video segment ${partCurrentString} of ${partTotalString} generated!`

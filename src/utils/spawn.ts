@@ -1,4 +1,5 @@
 import childProcess from 'node:child_process'
+import { ImplementationError } from '@/errors'
 
 export type SpawnRequest = {
   command: string
@@ -21,6 +22,10 @@ export const spawn = async (request: SpawnRequest) =>
         return resolve()
       }
 
-      return reject(code)
+      return reject(
+        new ImplementationError(
+          `Spawn exited with error code ${code} while running command: ${command} ${args?.join(' ') || ''}`
+        )
+      )
     })
   })

@@ -8,7 +8,7 @@ import {
   videosMetadataSchema
 } from '@/domain'
 import { ImplementationError, UsageError } from '@/errors'
-import { checkPathAccessibility, execFile, spawn } from '@/utils'
+import { checkPathAccessibility, execFile, getFfmpegEscapedText, spawn } from '@/utils'
 
 export namespace VideosService {
   type PercentageDeltaReporter = (percentageDelta: number) => void
@@ -80,6 +80,8 @@ export class VideosService {
       'scale=320:180:force_original_aspect_ratio=decrease,pad=320:180:(ow-iw)/2:(oh-ih)/2',
       '-q:v',
       '3',
+      '-update',
+      '1',
       '-y',
       thumbnailPath
     ]
@@ -206,7 +208,7 @@ export class VideosService {
     const { name: videoFileNameWithoutExtension, ext: videoFileExtension } =
       path.parse(videoFilePath)
 
-    const maxSizePerFileInBytes = 1792 * 1024 * 1024 // 1.75GB in MB * 1 MB in KB * 1 KB in B
+    const maxSizePerFileInBytes = 1.5 * 1024 * 1024 * 1024 // 1.5 * 1GB in MB * 1 MB in KB * 1 KB in B
 
     const numberOfFiles = Math.ceil(sizeInBytes / maxSizePerFileInBytes)
 
@@ -235,14 +237,14 @@ export class VideosService {
     }
 
     const ffmpegCommandOutputFileName = [
-      videoFileNameWithoutExtension,
+      getFfmpegEscapedText(videoFileNameWithoutExtension),
       '_%02d-',
       numberOfFiles.toString().padStart(2, '0'),
       videoFileExtension
     ].join('')
 
     const ffmpegCommandOutputFilePath = path.join(
-      videoSegmentsDirectory,
+      getFfmpegEscapedText(videoSegmentsDirectory),
       ffmpegCommandOutputFileName
     )
 
