@@ -15,7 +15,7 @@ Uploader de vídeos para o Telegram usando Node.js e TypeScript.
 - [Configuração e Instalação -> Instalação](#instalação)
 - [Configuração e Instalação -> Entendendo a diferença entre servidores da `Bot API`](#entendendo-a-diferença-entre-servidores-da-bot-api)
 - [Configuração e Instalação -> Variáveis de ambiente](#variáveis-de-ambiente)
-- [Configuração e Instalação -> Criando o arquivo `presets.json`](#criando-o-arquivo-presetsjson)
+- [Configuração e Instalação -> Criando o arquivo `settings.json`](#criando-o-arquivo-settingsjson)
 - [Configuração e Instalação -> Subindo o servidor local da `Bot API`](#subindo-o-servidor-local-da-bot-api)
 - [Uso -> Rodando o projeto](#rodando-o-projeto)
 - [Uso -> Como funciona](#como-funciona)
@@ -35,7 +35,7 @@ Este projeto é capaz de fazer o upload de vídeos para o Telegram através da `
 - CLI do ffprobe
 - CLIs do bash e do jq (necessárias somente para utilizar o script de conversão do `videos.json`; veja [nesta seção](#sobre-o-arquivo-videosjson))
 - Token de um bot do Telegram + ID do canal em que os vídeos serão postados (o bot precisa ter permissão para enviar mensagens)
-- Arquivo de configuração `presets.json` (veja [nesta seção](#criando-o-arquivo-presetsjson))
+- Arquivo de configuração `settings.json` (veja [nesta seção](#criando-o-arquivo-settingsjson))
 
 ### Instalação
 ```bash
@@ -70,74 +70,79 @@ Tabela com as variáveis de ambiente disponíveis:
 
 > **\*Nota:** Obrigatório se você for utilizar o servidor local da `Bot API` pelo Docker Compose.
 
-> **Nota:** A localização do banco de dados **não** é uma variável de ambiente: ela é definida por preset através da propriedade `databaseUrl` dentro do arquivo `presets.json` (veja [nesta seção](#criando-o-arquivo-presetsjson)). Caso você não pretenda utilizar o servidor local da `Bot API`, o arquivo `.env` não é necessário.
+> **Nota:** A localização do banco de dados **não** é uma variável de ambiente: ela é definida por preset através da propriedade `databaseUrl` dentro do arquivo `settings.json` (veja [nesta seção](#criando-o-arquivo-settingsjson)). Caso você não pretenda utilizar o servidor local da `Bot API`, o arquivo `.env` não é necessário.
 
-### Criando o arquivo `presets.json`
-Você também pode copiar o arquivo de exemplo [`presets.example.json`](./presets.example.json) e substituir com os valores que possui:
+### Criando o arquivo `settings.json`
+Você também pode copiar o arquivo de exemplo [`settings.example.json`](./settings.example.json) e substituir com os valores que possui:
 ```bash
-cp presets.example.json presets.json
+cp settings.example.json settings.json
 ```
 
 Exemplo com comentários:
 ```jsonc
-[
-  {
-    "name": "Meu Preset", // Nome do preset, utilizado na seleção de presets
-    "origin": "qualquer-coisa", // (Opcional) Identificador qualquer, útil quando você tem mais de um preset e deseja diferenciar os dados no banco de dados
-    // URL do banco de dados SQLite utilizado por este preset, no formato "file:nome-do-arquivo.db"
-    // Caminhos relativos são resolvidos a partir do diretório em que o comando for executado; também é possível utilizar um caminho absoluto ("file:/caminho/para/database.db")
-    // Cada preset pode apontar para o seu próprio arquivo de banco de dados, e o arquivo (junto de suas tabelas) é criado automaticamente caso ainda não exista
-    "databaseUrl": "file:database.db",
-    "telegram": {
-      // URL base da API para o upload dos vídeos
-      // Caso necessário, troque para o endereço do servidor local da Bot API rodando no Docker Compose
-      "apiBaseUrl": "https://api.telegram.org",
-      "botToken": "0000000000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // Token do BOT do Telegram
-      "channelId": "-100XXXXXXXXXX" // ID do canal em que os vídeos serão postados
-    },
-    "videosDirectory": "/diretorio/dos/videos", // Diretório onde os seus vídeos estão
-    "postDescription": {
-      // (Opcional) O texto base que será publicado junto com o vídeo, que pode ser um array de strings (como abaixo) ou uma string única
-      // Caso seja um array, as strings são concatenadas com quebra de linha (\n)
-      // O texto suporta MarkdownV2 (como pode ser visto na linha que começa com "Título"), mas não é obrigatório utilizá-lo
-      "baseText": [
-        "Título: #VIDEO_TITLE", // Isso faz o texto do placeholder #VIDEO_TITLE ser clicável e direcionar para o link do placeholder #VIDEO_URL
-        "Descrição: #VIDEO_DESCRIPTION",
-        "Canal: [#CHANNEL_TITLE](#CHANNEL_URL)", // A mesma coisa do título se aplica aqui
-        "Disponibilidade: #AVAILABILITY",
-        "Publicado em: #DATE",
-        "Parte: #PART_CURRENT de #PART_TOTAL"
-      ],
-
-      "channel": {
-        "name": "My Channel [Twitch]", // (Opcional) Nome do canal de onde o vídeo saiu, que será substituído no placeholder #CHANNEL_TITLE
-        "url": "https://www.twitch.tv/mychannel" // (Opcional) Link do canal de onde o vídeo saiu, que será substituído no placeholder #CHANNEL_URL
+{
+  // Lista de presets exibidos na seleção de presets (é necessário pelo menos um)
+  "presets": [
+    {
+      "name": "Meu Preset", // Nome do preset, utilizado na seleção de presets
+      "origin": "qualquer-coisa", // (Opcional) Identificador qualquer, útil quando você tem mais de um preset e deseja diferenciar os dados no banco de dados
+      // URL do banco de dados SQLite utilizado por este preset, no formato "file:nome-do-arquivo.db"
+      // Caminhos relativos são resolvidos a partir do diretório em que o comando for executado; também é possível utilizar um caminho absoluto ("file:/caminho/para/database.db")
+      // Cada preset pode apontar para o seu próprio arquivo de banco de dados, e o arquivo (junto de suas tabelas) é criado automaticamente caso ainda não exista
+      "databaseUrl": "file:database.db",
+      "telegram": {
+        // URL base da API para o upload dos vídeos
+        // Caso necessário, troque para o endereço do servidor local da Bot API rodando no Docker Compose
+        "apiBaseUrl": "https://api.telegram.org",
+        "botToken": "0000000000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // Token do BOT do Telegram
+        "channelId": "-100XXXXXXXXXX" // ID do canal em que os vídeos serão postados
       },
+      "videosDirectory": "/diretorio/dos/videos", // Diretório onde os seus vídeos estão
+      "postDescription": {
+        // (Opcional) O texto base que será publicado junto com o vídeo, que pode ser um array de strings (como abaixo) ou uma string única
+        // Caso seja um array, as strings são concatenadas com quebra de linha (\n)
+        // O texto suporta MarkdownV2 (como pode ser visto na linha que começa com "Título"), mas não é obrigatório utilizá-lo
+        "baseText": [
+          "Título: #VIDEO_TITLE", // Isso faz o texto do placeholder #VIDEO_TITLE ser clicável e direcionar para o link do placeholder #VIDEO_URL
+          "Descrição: #VIDEO_DESCRIPTION",
+          "Canal: [#CHANNEL_TITLE](#CHANNEL_URL)", // A mesma coisa do título se aplica aqui
+          "Disponibilidade: #AVAILABILITY",
+          "Publicado em: #DATE",
+          "Parte: #PART_CURRENT de #PART_TOTAL"
+        ],
 
-      // (Opcional) Formato da data do placeholder #DATE
-      // "DD" significa "dia", "MM" significa "mês" e "YYYY" significa "ano"
-      // Verifique o arquivo "Preset.ts" dentro do diretório "./src/domain" para verificar todos os formatos disponíveis
-      "dateFormat": "MM/DD/YYYY",
+        "channel": {
+          "name": "My Channel [Twitch]", // (Opcional) Nome do canal de onde o vídeo saiu, que será substituído no placeholder #CHANNEL_TITLE
+          "url": "https://www.twitch.tv/mychannel" // (Opcional) Link do canal de onde o vídeo saiu, que será substituído no placeholder #CHANNEL_URL
+        },
 
-      // (Opcional) Mapeamento dos estados de disponibilidade possíveis
-      // O estado "unknown" é utilizado quando o vídeo não possui disponibilidade definida no arquivo videos.json
-      "availability": {
-        "private": "Privado",
-        "premiumOnly": "Somente para usuários do YouTube Premium",
-        "subscriberOnly": "Somente para membros do canal / subs",
-        "needsAuth": "Público (requer login)",
-        "unlisted": "Não-listado",
-        "public": "Público",
-        "unknown": "Desconhecido"
+        // (Opcional) Formato da data do placeholder #DATE
+        // "DD" significa "dia", "MM" significa "mês" e "YYYY" significa "ano"
+        // Verifique o arquivo "Preset.ts" dentro do diretório "./src/domain" para verificar todos os formatos disponíveis
+        "dateFormat": "MM/DD/YYYY",
+
+        // (Opcional) Mapeamento dos estados de disponibilidade possíveis
+        // O estado "unknown" é utilizado quando o vídeo não possui disponibilidade definida no arquivo videos.json
+        "availability": {
+          "private": "Privado",
+          "premiumOnly": "Somente para usuários do YouTube Premium",
+          "subscriberOnly": "Somente para membros do canal / subs",
+          "needsAuth": "Público (requer login)",
+          "unlisted": "Não-listado",
+          "public": "Público",
+          "unknown": "Desconhecido"
+        }
       }
     }
-  }
-]
+  ]
+}
 ```
 
-O arquivo `presets.json` é carregado automaticamente caso esteja no diretório raiz do projeto. Caso queira salvá-lo com um nome ou em um diretório diferentes, você pode apontar o caminho do arquivo com uma flag ao rodar o comando. Verifique essa opção [na seção abaixo](#rodando-o-projeto).
+O arquivo `settings.json` é carregado automaticamente caso esteja no diretório raiz do projeto. Caso queira salvá-lo com um nome ou em um diretório diferentes, você pode apontar o caminho do arquivo com uma flag ao rodar o comando. Verifique essa opção [na seção abaixo](#rodando-o-projeto).
 
-> **AVISO:** O arquivo `presets.json` deve ser salvo sem nenhum comentário.
+> **AVISO:** O arquivo `settings.json` deve ser salvo sem nenhum comentário.
+
+> **Nota:** Caso você já possua um arquivo `presets.json` de uma versão anterior, renomeie-o para `settings.json` e mova o array dele para a propriedade `presets`: `{ "presets": [ ... ] }`. A flag `--presetsPath` (`-p`) também foi substituída por `--settingsPath` (`-s`).
 
 ### Subindo o servidor local da `Bot API`
 Após confirmar que as variáveis de ambiente estão corretamente inseridas, basta rodar o comando abaixo:
@@ -155,9 +160,9 @@ pnpm start
 # Para uso rápido
 pnpm dev
 
-# Apontando para um arquivo presets.json diferente
-pnpm start --presetsPath /new/path/to/presets.json
-pnpm start -p /new/path/to/presets.json
+# Apontando para um arquivo settings.json diferente
+pnpm start --settingsPath /new/path/to/settings.json
+pnpm start -s /new/path/to/settings.json
 
 # Dry run
 pnpm start --dryRun
@@ -168,15 +173,15 @@ Tabela com as flags disponíveis:
 
 | Flag | Atalho | Tipo | Padrão | Descrição |
 |---|---|---|---|---|
-| `--presetsPath` | `-p` | Texto | `presets.json` no diretório onde o comando é rodado | Caminho do arquivo `presets.json` |
+| `--settingsPath` | `-s` | Texto | `settings.json` no diretório onde o comando é rodado | Caminho do arquivo `settings.json` |
 | `--dryRun` | `-d` | Booleano | `false` | Roda as ações sem converter arquivos, persistir informações no banco de dados ou enviar qualquer alteração para o canal do Telegram |
 
 ### Como funciona
-O código lê o conteúdo do arquivo `presets.json` presente na raiz do projeto para obter suas configurações. A partir daí, pede primeiramente ao usuário para selecionar um dos presets providos pelo arquivo. Logo após a seleção, conecta-se ao banco de dados definido na propriedade `databaseUrl` do preset e aplica as migrations pendentes automaticamente (criando o arquivo do banco de dados caso ele ainda não exista), e depois pede para selecionar uma ação.
+O código lê o conteúdo do arquivo `settings.json` presente na raiz do projeto para obter suas configurações. A partir daí, pede primeiramente ao usuário para selecionar um dos presets listados na propriedade `presets` do arquivo. Logo após a seleção, conecta-se ao banco de dados definido na propriedade `databaseUrl` do preset e aplica as migrations pendentes automaticamente (criando o arquivo do banco de dados caso ele ainda não exista), e depois pede para selecionar uma ação.
 
 As ações disponíveis são:
 
-- **Trocar preset:** volta para a seleção de presets. O arquivo `presets.json` é lido novamente, a conexão com o banco de dados do preset atual é fechada, e o banco de dados do preset recém-escolhido é conectado e migrado, assim como na inicialização. É a primeira opção do menu.
+- **Trocar preset:** volta para a seleção de presets. O arquivo `settings.json` é lido novamente, a conexão com o banco de dados do preset atual é fechada, e o banco de dados do preset recém-escolhido é conectado e migrado, assim como na inicialização. É a primeira opção do menu.
 
 - **Checagem dos dados do preset:** não faz nenhum upload. Imprime as principais configurações do preset escolhido (nome, origem, banco de dados, diretório de vídeos, nome do canal, URL do canal e formato de data) e depois consulta a `Bot API` do Telegram para imprimir os dados do canal (título e descrição) e do bot (nome e nome de usuário) para os quais o preset realmente aponta. Em seguida, imprime um resumo do banco de dados para a origem do preset: quantos vídeos estão armazenados, quantos deles têm exatamente 1, 2, 3… partes, quantos uploads (partes) estão armazenados no total e quantos uploads existem para cada número de parte. É útil para confirmar que o token do bot, o ID do canal e a URL da API estão corretos antes de iniciar um upload.
 
@@ -229,7 +234,7 @@ Informe a flag `-r` para escrever o resultado diretamente como `videos.json`, se
 
 O script é um script em bash e depende da CLI do [`jq`](https://jqlang.org) estar disponível no seu `PATH`.
 
-O arquivo gerado será salvo na mesma pasta em que `ytdlp.json` está, com o nome `videos_<timestamp>.json` (o timestamp evita sobrescrever uma conversão anterior) — ou `videos.json`, caso a flag `-r` seja utilizada. O script imprime o caminho completo dele ao final. Após isso, você pode deletar o arquivo temporário. Caso não tenha utilizado a flag `-r`, não esqueça de renomear o arquivo gerado para `videos.json` e, caso necessário, de movê-lo para a pasta especificada no preset a ser utilizado dentro do arquivo `presets.json`.
+O arquivo gerado será salvo na mesma pasta em que `ytdlp.json` está, com o nome `videos_<timestamp>.json` (o timestamp evita sobrescrever uma conversão anterior) — ou `videos.json`, caso a flag `-r` seja utilizada. O script imprime o caminho completo dele ao final. Após isso, você pode deletar o arquivo temporário. Caso não tenha utilizado a flag `-r`, não esqueça de renomear o arquivo gerado para `videos.json` e, caso necessário, de movê-lo para a pasta especificada no preset a ser utilizado dentro do arquivo `settings.json`.
 
 Caso deseje, também é possível escrever manualmente o arquivo `videos.json`, embora isso seja um processo trabalhoso.
 

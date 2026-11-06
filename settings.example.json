@@ -1,0 +1,39 @@
+{
+  "presets": [
+    {
+      "name": "Presets Example",
+      "origin": "origin",
+      "databaseUrl": "file:database.db",
+      "telegram": {
+        "apiBaseUrl": "telegram-api-base-url",
+        "botToken": "telegram-bot-token",
+        "channelId": "telegram-channel-id"
+      },
+      "videosDirectory": "/path/to/videos",
+      "postDescription": {
+        "baseText": [
+          "Title [#VIDEO_TITLE](#VIDEO_URL)",
+          "Description: #VIDEO_DESCRIPTION",
+          "Channel: [#CHANNEL_TITLE](#CHANNEL_URL)",
+          "Availability: #AVAILABILITY",
+          "Published at: #DATE",
+          "Part: #PART_CURRENT of #PART_TOTAL"
+        ],
+        "channel": {
+          "name": "Channel Name",
+          "url": "https://channel.com/url"
+        },
+        "dateFormat": "MM-DD-YYYY",
+        "availability": {
+          "private": "Private",
+          "premiumOnly": "Only for YouTube Premium",
+          "subscriberOnly": "Only for members",
+          "needsAuth": "Public (requires authentication)",
+          "unlisted": "Unlisted",
+          "public": "Public",
+          "unknown": "Unknown"
+        }
+      }
+    }
+  ]
+}

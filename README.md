@@ -15,7 +15,7 @@ Telegram videos uploader made with Node.js and TypeScript.
 - [Setup and Installation -> Installation](#installation)
 - [Setup and Installation -> Understanding the difference between `Bot API` servers](#understanding-the-difference-between-bot-api-servers)
 - [Setup and Installation -> Environment variables](#environment-variables)
-- [Setup and Installation -> Creating the `presets.json` file](#creating-the-presetsjson-file)
+- [Setup and Installation -> Creating the `settings.json` file](#creating-the-settingsjson-file)
 - [Setup and Installation -> Spinning up the local `Bot API` server](#spinning-up-the-local-bot-api-server)
 - [Usage -> Running the project](#running-the-project)
 - [Usage -> How it works](#how-it-works)
@@ -35,7 +35,7 @@ This project is capable of uploading videos to Telegram through the `Bot API`, u
 - ffprobe CLI
 - bash and jq CLIs (only required to use the `videos.json` conversion script; see [this section](#about-the-videosjson-file))
 - A Telegram bot token + the ID of the channel where the videos will be posted (the bot must have permission to send messages)
-- A `presets.json` configuration file (see [this section](#creating-the-presetsjson-file))
+- A `settings.json` configuration file (see [this section](#creating-the-settingsjson-file))
 
 ### Installation
 ```bash
@@ -70,74 +70,79 @@ Table with the available environment variables:
 
 > **\*Note:** Required if you are going to use the local `Bot API` server through Docker Compose.
 
-> **Note:** The database location is **not** an environment variable: it is defined per preset through the `databaseUrl` property inside the `presets.json` file (see [this section](#creating-the-presetsjson-file)). If you do not intend to use the local `Bot API` server, the `.env` file is not needed at all.
+> **Note:** The database location is **not** an environment variable: it is defined per preset through the `databaseUrl` property inside the `settings.json` file (see [this section](#creating-the-settingsjson-file)). If you do not intend to use the local `Bot API` server, the `.env` file is not needed at all.
 
-### Creating the `presets.json` file
-You can also copy the [`presets.example.json`](./presets.example.json) example file and replace its values with the ones you have:
+### Creating the `settings.json` file
+You can also copy the [`settings.example.json`](./settings.example.json) example file and replace its values with the ones you have:
 ```bash
-cp presets.example.json presets.json
+cp settings.example.json settings.json
 ```
 
 Example with comments:
 ```jsonc
-[
-  {
-    "name": "My Preset", // Preset name, used in the preset selection
-    "origin": "anything", // (Optional) Arbitrary identifier, useful when you have more than one preset and want to differentiate the data in the database
-    // SQLite database URL used by this preset, in the "file:file-name.db" format
-    // Relative paths are resolved from the directory where the command is run; you can also use an absolute path ("file:/path/to/database.db")
-    // Each preset can point to its own database file, and the file (along with its tables) is created automatically if it doesn't exist yet
-    "databaseUrl": "file:database.db",
-    "telegram": {
-      // Base API URL for uploading the videos
-      // If needed, change it to the address of the local Bot API server running on Docker Compose
-      "apiBaseUrl": "https://api.telegram.org",
-      "botToken": "0000000000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // Telegram BOT token
-      "channelId": "-100XXXXXXXXXX" // ID of the channel where the videos will be posted
-    },
-    "videosDirectory": "/path/to/videos", // Directory where your videos are located
-    "postDescription": {
-      // (Optional) The base text that will be posted along with the video, which can be an array of strings (as below) or a single string
-      // If it's an array, the strings are concatenated with a line break (\n)
-      // The text supports MarkdownV2 (as can be seen in the line starting with "Title"), but using it is not required
-      "baseText": [
-        "Title: [#VIDEO_TITLE](#VIDEO_URL)", // This makes the #VIDEO_TITLE placeholder text clickable and links to the #VIDEO_URL placeholder
-        "Description: #VIDEO_DESCRIPTION",
-        "Channel: [#CHANNEL_TITLE](#CHANNEL_URL)", // The same from title applies here
-        "Availability: #AVAILABILITY",
-        "Published on: #DATE",
-        "Part: #PART_CURRENT of #PART_TOTAL"
-      ],
-
-      "channel": {
-        "name": "My Channel [Twitch]", // (Optional) Name of the channel the video came from, which will replace the #CHANNEL_TITLE placeholder
-        "url": "https://www.twitch.tv/mychannel" // (Optional) Link of the channel the video came from, which will replace the #CHANNEL_URL placeholder
+{
+  // List of presets offered in the preset selection (at least one is required)
+  "presets": [
+    {
+      "name": "My Preset", // Preset name, used in the preset selection
+      "origin": "anything", // (Optional) Arbitrary identifier, useful when you have more than one preset and want to differentiate the data in the database
+      // SQLite database URL used by this preset, in the "file:file-name.db" format
+      // Relative paths are resolved from the directory where the command is run; you can also use an absolute path ("file:/path/to/database.db")
+      // Each preset can point to its own database file, and the file (along with its tables) is created automatically if it doesn't exist yet
+      "databaseUrl": "file:database.db",
+      "telegram": {
+        // Base API URL for uploading the videos
+        // If needed, change it to the address of the local Bot API server running on Docker Compose
+        "apiBaseUrl": "https://api.telegram.org",
+        "botToken": "0000000000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // Telegram BOT token
+        "channelId": "-100XXXXXXXXXX" // ID of the channel where the videos will be posted
       },
+      "videosDirectory": "/path/to/videos", // Directory where your videos are located
+      "postDescription": {
+        // (Optional) The base text that will be posted along with the video, which can be an array of strings (as below) or a single string
+        // If it's an array, the strings are concatenated with a line break (\n)
+        // The text supports MarkdownV2 (as can be seen in the line starting with "Title"), but using it is not required
+        "baseText": [
+          "Title: [#VIDEO_TITLE](#VIDEO_URL)", // This makes the #VIDEO_TITLE placeholder text clickable and links to the #VIDEO_URL placeholder
+          "Description: #VIDEO_DESCRIPTION",
+          "Channel: [#CHANNEL_TITLE](#CHANNEL_URL)", // The same from title applies here
+          "Availability: #AVAILABILITY",
+          "Published on: #DATE",
+          "Part: #PART_CURRENT of #PART_TOTAL"
+        ],
 
-      // (Optional) Date format for the #DATE placeholder
-      // "DD" means "day", "MM" means "month" and "YYYY" means "year"
-      // Check the "Preset.ts" file inside the "./src/domain" directory to see all available formats
-      "dateFormat": "MM/DD/YYYY",
+        "channel": {
+          "name": "My Channel [Twitch]", // (Optional) Name of the channel the video came from, which will replace the #CHANNEL_TITLE placeholder
+          "url": "https://www.twitch.tv/mychannel" // (Optional) Link of the channel the video came from, which will replace the #CHANNEL_URL placeholder
+        },
 
-      // (Optional) Mapping of the possible availability states
-      // The "unknown" state is used when the video has no availability defined in the videos.json file
-      "availability": {
-        "private": "Private",
-        "premiumOnly": "Only for YouTube Premium users",
-        "subscriberOnly": "Only for channel members / subs",
-        "needsAuth": "Public (requires login)",
-        "unlisted": "Unlisted",
-        "public": "Public",
-        "unknown": "Unknown"
+        // (Optional) Date format for the #DATE placeholder
+        // "DD" means "day", "MM" means "month" and "YYYY" means "year"
+        // Check the "Preset.ts" file inside the "./src/domain" directory to see all available formats
+        "dateFormat": "MM/DD/YYYY",
+
+        // (Optional) Mapping of the possible availability states
+        // The "unknown" state is used when the video has no availability defined in the videos.json file
+        "availability": {
+          "private": "Private",
+          "premiumOnly": "Only for YouTube Premium users",
+          "subscriberOnly": "Only for channel members / subs",
+          "needsAuth": "Public (requires login)",
+          "unlisted": "Unlisted",
+          "public": "Public",
+          "unknown": "Unknown"
+        }
       }
     }
-  }
-]
+  ]
+}
 ```
 
-The `presets.json` file is loaded automatically if it is in the project's root directory. If you want to save it under a different name or in a different directory, you can point to the file path with a flag when running the command. Check this option [in the section below](#running-the-project).
+The `settings.json` file is loaded automatically if it is in the project's root directory. If you want to save it under a different name or in a different directory, you can point to the file path with a flag when running the command. Check this option [in the section below](#running-the-project).
 
-> **WARNING:** The `presets.json` must be saved without any comments.
+> **WARNING:** The `settings.json` must be saved without any comments.
+
+> **Note:** If you already have a `presets.json` file from a previous version, rename it to `settings.json` and move its array into the `presets` property: `{ "presets": [ ... ] }`. The `--presetsPath` (`-p`) flag has also been replaced by `--settingsPath` (`-s`).
 
 ### Spinning up the local `Bot API` server
 After confirming that the environment variables are correctly set, just run the command below:
@@ -155,9 +160,9 @@ pnpm start
 # For quick use
 pnpm dev
 
-# Pointing to a different presets.json file
-pnpm start --presetsPath /new/path/to/presets.json
-pnpm start -p /new/path/to/presets.json
+# Pointing to a different settings.json file
+pnpm start --settingsPath /new/path/to/settings.json
+pnpm start -s /new/path/to/settings.json
 
 # Dry run
 pnpm start --dryRun
@@ -168,15 +173,15 @@ Table with the available flags:
 
 | Flag | Short | Type | Default | Description |
 |---|---|---|---|---|
-| `--presetsPath` | `-p` | Text | `presets.json` in the directory where the command is run | Path to the `presets.json` file |
+| `--settingsPath` | `-s` | Text | `settings.json` in the directory where the command is run | Path to the `settings.json` file |
 | `--dryRun` | `-d` | Boolean | `false` | Runs the actions without converting files, persisting data to the database or sending any change to the Telegram channel |
 
 ### How it works
-The code reads the contents of the `presets.json` file in the project's root directory to obtain its settings. From there, it first asks the user to select one of the presets provided by the file. Right after the selection, it connects to the database defined in the preset's `databaseUrl` property and applies the pending migrations automatically (creating the database file if it doesn't exist yet), and then asks the user to select an action.
+The code reads the contents of the `settings.json` file in the project's root directory to obtain its settings. From there, it first asks the user to select one of the presets listed in its `presets` property. Right after the selection, it connects to the database defined in the preset's `databaseUrl` property and applies the pending migrations automatically (creating the database file if it doesn't exist yet), and then asks the user to select an action.
 
 The available actions are:
 
-- **Change preset:** returns to the preset selection. The `presets.json` file is read again, the connection to the current preset's database is closed, and the newly chosen preset's database is connected and migrated, just like on startup. It's the first option in the menu.
+- **Change preset:** returns to the preset selection. The `settings.json` file is read again, the connection to the current preset's database is closed, and the newly chosen preset's database is connected and migrated, just like on startup. It's the first option in the menu.
 
 - **Check preset data:** doesn't upload anything. It prints the main settings of the chosen preset (name, origin, database, videos directory, channel name, channel URL and date format) and then queries the Telegram `Bot API` to print the data of the channel (title and description) and of the bot (name and username) that the preset actually points to. It then prints a summary of the database for the preset's origin: how many videos are stored, how many of them have exactly 1, 2, 3… parts, how many uploads (parts) are stored in total, and how many uploads exist for each part number. It's useful to confirm that the bot token, the channel ID and the API URL are correct before starting an upload.
 
@@ -229,7 +234,7 @@ Pass the `-r` flag to write the result directly as `videos.json`, without the ti
 
 The script is a bash script and depends on the [`jq`](https://jqlang.org) CLI being available on your `PATH`.
 
-The generated file will be saved in the same folder where `ytdlp.json` is, named `videos_<timestamp>.json` (the timestamp avoids overwriting a previous conversion) — or `videos.json` when `-r` is used. The script prints its full path at the end. After that, you can delete the temporary file. If you didn't use the `-r` flag, don't forget to rename the generated file to `videos.json` and, if necessary, to move it to the folder specified in the preset to be used within the `presets.json` file.
+The generated file will be saved in the same folder where `ytdlp.json` is, named `videos_<timestamp>.json` (the timestamp avoids overwriting a previous conversion) — or `videos.json` when `-r` is used. The script prints its full path at the end. After that, you can delete the temporary file. If you didn't use the `-r` flag, don't forget to rename the generated file to `videos.json` and, if necessary, to move it to the folder specified in the preset to be used within the `settings.json` file.
 
 If you wish, it is also possible to write the `videos.json` file manually, although this is a laborious process.
 

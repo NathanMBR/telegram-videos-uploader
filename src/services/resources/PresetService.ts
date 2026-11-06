@@ -5,6 +5,10 @@ import { ImplementationError, UsageError } from '@/errors'
 import { checkPathAccessibility } from '@/utils'
 
 export type LoadPresetsResult = Promise<Presets>
+
+/**
+ * @deprecated no longer used since addition of SettingsService.ts
+ */
 export class PresetService {
   async getAllPresets(presetsPath: string): LoadPresetsResult {
     const presetsAccessibility = await checkPathAccessibility(presetsPath)
