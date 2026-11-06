@@ -33,7 +33,11 @@ export const boot = async () => {
     new PrintPresetInfoUsecase(chosenPreset, cliService),
     new PrintVideoInfoUsecase(chosenPreset, cliService),
     new PrintVideosByAvailabilityUsecase(chosenPreset, cliService),
-    new UploadVideosUsecase(chosenPreset, cliService),
+    new UploadVideosUsecase(
+      chosenPreset,
+      cliService,
+      chosenPreset.targetUploadSizeInMB || settings.targetUploadSizeInMB
+    ),
     new EditVideoUsecase(chosenPreset, cliService),
     new DeleteVideoUsecase(chosenPreset, cliService)
   ])

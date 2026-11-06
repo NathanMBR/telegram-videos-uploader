@@ -31,6 +31,7 @@ export namespace VideosService {
     videoSegmentsDirectory: string
     sizeInBytes: number
     durationInSeconds: number
+    targetUploadSizeInMB: number
     percentageDeltaReporter?: PercentageDeltaReporter
   }
 
@@ -202,15 +203,16 @@ export class VideosService {
       videoSegmentsDirectory,
       sizeInBytes,
       durationInSeconds,
+      targetUploadSizeInMB,
       percentageDeltaReporter
     } = dto
 
     const { name: videoFileNameWithoutExtension, ext: videoFileExtension } =
       path.parse(videoFilePath)
 
-    const maxSizePerFileInBytes = 1.75 * 1024 * 1024 * 1024 // 1.75 * 1GB in MB * 1 MB in KB * 1 KB in B
+    const targetSizePerFileInBytes = targetUploadSizeInMB * 1024 * 1024 // user-provided size * 1GB in MB * 1 MB in KB * 1 KB in B
 
-    const numberOfFiles = Math.ceil(sizeInBytes / maxSizePerFileInBytes)
+    const numberOfFiles = Math.ceil(sizeInBytes / targetSizePerFileInBytes)
 
     const durationOfEachFileInSeconds = durationInSeconds / numberOfFiles
 
@@ -226,7 +228,7 @@ export class VideosService {
       await fs.mkdir(videoSegmentsDirectory, { recursive: true })
     }
 
-    if (sizeInBytes <= maxSizePerFileInBytes) {
+    if (sizeInBytes <= targetSizePerFileInBytes) {
       const symlinkName = [videoFileNameWithoutExtension, '_01-01', videoFileExtension].join('')
 
       const symlinkPath = path.join(videoSegmentsDirectory, symlinkName)

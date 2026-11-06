@@ -29,6 +29,18 @@ export type PostDescriptionAvailabilities = Record<
 
 const errorMessageSchema = 'preset'
 
+const minTargetUploadSizeInMB = 10
+const maxTargetUploadSizeInMB = 1_990 // 2000 MB is Telegram's current max size per file in self-hosted Bot APIs (checked at November 6th, A.D. 2026 - yes, A.D., not C.E.; Jesus Christ is Lord, True God from True God!)
+export const targetUploadSizeInMB = zod
+  .int32({ error: getSchemaErrorMessage(errorMessageSchema, 'targetUploadSizeInMB') })
+  .gte(minTargetUploadSizeInMB, {
+    error: `targetUploadSizeInMB should be greater than or equal ${minTargetUploadSizeInMB}`
+  })
+  .lte(maxTargetUploadSizeInMB, {
+    error: `targetUploadSizeInMB should be lower than or equal ${maxTargetUploadSizeInMB}`
+  })
+  .optional()
+
 export const presetSchema = zod.object(
   {
     name: zod.string({ error: getSchemaErrorMessage(errorMessageSchema, 'name') }),
@@ -36,6 +48,8 @@ export const presetSchema = zod.object(
     origin: zod.string({ error: getSchemaErrorMessage(errorMessageSchema, 'origin') }).nullish(),
 
     databaseUrl: zod.string({ error: getSchemaErrorMessage(errorMessageSchema, 'databaseUrl') }),
+
+    targetUploadSizeInMB,
 
     telegram: zod.object(
       {

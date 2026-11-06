@@ -20,7 +20,8 @@ export class UploadVideosUsecase extends Usecase {
 
   constructor(
     protected readonly preset: Preset,
-    private readonly cliService: CLIService
+    private readonly cliService: CLIService,
+    private readonly targetUploadSizeInMB: number
   ) {
     super()
 
@@ -253,6 +254,7 @@ export class UploadVideosUsecase extends Usecase {
         videoFilePath,
         videoSegmentsDirectory,
         ...videoFileMetadata,
+        targetUploadSizeInMB: this.targetUploadSizeInMB,
         percentageDeltaReporter: percentageDelta => {
           segmentingPercentage += percentageDelta
 
