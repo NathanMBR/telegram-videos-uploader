@@ -81,6 +81,11 @@ cp settings.example.json settings.json
 Exemplo com comentários:
 ```jsonc
 {
+  // (Opcional) Tamanho aproximado, em megabytes, de cada parte em que um vídeo é dividido antes do upload
+  // Deve ser um número inteiro entre 10 e 1990; o padrão é 1792 (1.75 GB)
+  // Caso você utilize o servidor oficial da Bot API, defina um valor bem abaixo do limite de upload dele (cerca de 50 MB)
+  "targetUploadSizeInMB": 1792,
+
   // Lista de presets exibidos na seleção de presets (é necessário pelo menos um)
   "presets": [
     {
@@ -90,6 +95,7 @@ Exemplo com comentários:
       // Caminhos relativos são resolvidos a partir do diretório em que o comando for executado; também é possível utilizar um caminho absoluto ("file:/caminho/para/database.db")
       // Cada preset pode apontar para o seu próprio arquivo de banco de dados, e o arquivo (junto de suas tabelas) é criado automaticamente caso ainda não exista
       "databaseUrl": "file:database.db",
+      "targetUploadSizeInMB": 1024, // (Opcional) Sobrescreve o "targetUploadSizeInMB" do nível superior somente para este preset
       "telegram": {
         // URL base da API para o upload dos vídeos
         // Caso necessário, troque para o endereço do servidor local da Bot API rodando no Docker Compose
@@ -189,7 +195,7 @@ As ações disponíveis são:
 
 - **Checagem da lista de vídeos por disponibilidade:** não altera nada. Pede que você escolha um estado de disponibilidade (exibido com os textos definidos no preset) e imprime os títulos de todos os vídeos registrados para o preset escolhido com aquela disponibilidade, ordenados por título. Ao final, pergunta `Return to menu?` (a resposta padrão é sim).
 
-- **Upload de vídeos:** lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Caso o diretório também possua vídeos em um formato que precise de conversão, é perguntado se você deseja convertê-los para `.mp4` primeiro (a resposta padrão é sim), e os vídeos convertidos participam da mesma execução. Então, o vídeo é dividido em segmentos menores que (ou iguais a) 1.75GB de tamanho, a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
+- **Upload de vídeos:** lê os dados dos vídeos do arquivo `videos.json` dentro do diretório de vídeos do preset (caso exista) para utilizar como referência. Caso o diretório também possua vídeos em um formato que precise de conversão, é perguntado se você deseja convertê-los para `.mp4` primeiro (a resposta padrão é sim), e os vídeos convertidos participam da mesma execução. Então, o vídeo é dividido em segmentos de cerca de `targetUploadSizeInMB` megabytes cada (1792 MB, ou seja, 1.75GB, a não ser que o preset ou o arquivo de configurações defina outro valor), a _cover image_ é convertida para _thumbnail_ caso já exista ou extraída do próprio vídeo caso contrário, e o upload do vídeo é feito para o canal do Telegram.
 
 - **Editar informações do vídeo:** exibe uma lista pesquisável dos vídeos registrados para o preset escolhido — a busca filtra por nome de arquivo, título e descrição — e depois pergunta qual propriedade você deseja editar: título, descrição, disponibilidade ou data de publicação. Os campos de título e descrição já vêm preenchidos com o valor atual, a disponibilidade é escolhida dentre os estados definidos no preset, e a data de publicação deve ser digitada no formato `YYYY-MM-DD`. Após salvar, a ferramenta reescreve a descrição de todas as postagens já enviadas daquele vídeo no canal do Telegram. Escolher "Cancel edit" volta ao menu de ações sem alterar nada.
 
@@ -241,7 +247,7 @@ Caso deseje, também é possível escrever manualmente o arquivo `videos.json`, 
 > **Nota:** o arquivo `videos.json` não é necessário para que o upload funcione, mas apenas a mínima informação necessária será provida para tal. A maioria dos _placeholders_ da descrição do post ficarão vazios.
 
 ### Limitações
-- Caso seus vídeos sejam muito grandes, não será possível utilizar a API padrão do Telegram, sendo necessário subir seu próprio servidor para o upload. Verifique a seção ["Entendendo a diferença entre servidores da `Bot API`"](#entendendo-a-diferença-entre-servidores-da-bot-api) para saber mais sobre.
+- Caso seus vídeos sejam muito grandes, não será possível utilizar a API padrão do Telegram, sendo necessário subir seu próprio servidor para o upload. Verifique a seção ["Entendendo a diferença entre servidores da `Bot API`"](#entendendo-a-diferença-entre-servidores-da-bot-api) para saber mais sobre. Como alternativa, você pode definir o `targetUploadSizeInMB` bem abaixo do limite do servidor oficial (cerca de 50 MB), para que cada vídeo seja dividido em várias partes menores, cada uma publicada separadamente.
 
 - Os uploads são sempre feitos no formato `.mp4`, mas a ferramenta também aceita arquivos `.mkv`, `.avi`, `.wmv`, `.webm`, `.mov`, `.mpg`, `.mpeg`, `.flv`, `.ogv`, `.3gp`, `.vob` e `.mxf`: ao encontrar algum deles no diretório de vídeos, a ação de upload pergunta se você deseja convertê-los para `.mp4` antes de continuar (a resposta padrão é sim), e os arquivos convertidos têm o upload feito na mesma execução. Responder "não" deixa esses arquivos de fora. As _cover images_, no entanto, continuam sendo tratadas apenas nos formatos `.jpg` e `.jpeg` — converta-as antes.
 

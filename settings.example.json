@@ -1,4 +1,5 @@
 {
+  "targetUploadSizeInMB": 1792,
   "presets": [
     {
       "name": "Presets Example",

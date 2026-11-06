@@ -81,6 +81,11 @@ cp settings.example.json settings.json
 Example with comments:
 ```jsonc
 {
+  // (Optional) Approximate size, in megabytes, of each part a video is split into before being uploaded
+  // It must be a whole number between 10 and 1990; defaults to 1792 (1.75 GB)
+  // If you use the official Bot API server, set it comfortably below its upload limit (around 50 MB)
+  "targetUploadSizeInMB": 1792,
+
   // List of presets offered in the preset selection (at least one is required)
   "presets": [
     {
@@ -90,6 +95,7 @@ Example with comments:
       // Relative paths are resolved from the directory where the command is run; you can also use an absolute path ("file:/path/to/database.db")
       // Each preset can point to its own database file, and the file (along with its tables) is created automatically if it doesn't exist yet
       "databaseUrl": "file:database.db",
+      "targetUploadSizeInMB": 1024, // (Optional) Overrides the top-level "targetUploadSizeInMB" for this preset only
       "telegram": {
         // Base API URL for uploading the videos
         // If needed, change it to the address of the local Bot API server running on Docker Compose
@@ -189,7 +195,7 @@ The available actions are:
 
 - **Check videos list by availability:** doesn't change anything. Asks you to pick an availability state (shown with the display texts defined in the preset) and prints the titles of all videos registered for the chosen preset with that availability, sorted by title. It finishes by asking `Return to menu?` (the default answer is yes).
 
-- **Upload videos:** reads the video data from the `videos.json` file inside the preset's videos directory (if it exists) to use as a reference. If the directory also holds videos in a format that needs conversion, it asks whether to convert them to `.mp4` first (the default answer is yes), and the converted videos take part in the same run. Then, the video is split into segments smaller than (or equal to) 1.75GB in size, the _cover image_ is converted into a _thumbnail_ if it already exists or extracted from the video itself otherwise, and the video is uploaded to the Telegram channel.
+- **Upload videos:** reads the video data from the `videos.json` file inside the preset's videos directory (if it exists) to use as a reference. If the directory also holds videos in a format that needs conversion, it asks whether to convert them to `.mp4` first (the default answer is yes), and the converted videos take part in the same run. Then, the video is split into segments of about `targetUploadSizeInMB` megabytes each (1792 MB, i.e. 1.75GB, unless the preset or the settings file sets another value), the _cover image_ is converted into a _thumbnail_ if it already exists or extracted from the video itself otherwise, and the video is uploaded to the Telegram channel.
 
 - **Edit video info:** shows a searchable list of the videos registered for the chosen preset — typing filters by filename, title and description — and then asks which property to edit: title, description, availability or publication date. The title and description prompts come prefilled with the current value, the availability is chosen from the states defined in the preset, and the publication date must be typed in the `YYYY-MM-DD` format. After saving, the tool rewrites the description of every post already uploaded for that video in the Telegram channel. Choosing "Cancel edit" returns to the action menu without changing anything.
 
@@ -241,7 +247,7 @@ If you wish, it is also possible to write the `videos.json` file manually, altho
 > **Note:** the `videos.json` file is not required for the upload to work, but only the minimum necessary information will be provided. Most of the post description's _placeholders_ will be empty.
 
 ### Limitations
-- If your videos are too large, it won't be possible to use Telegram's default API, and you'll need to spin up your own server for the upload. Check the ["Understanding the difference between `Bot API` servers"](#understanding-the-difference-between-bot-api-servers) section to learn more about it.
+- If your videos are too large, it won't be possible to use Telegram's default API, and you'll need to spin up your own server for the upload. Check the ["Understanding the difference between `Bot API` servers"](#understanding-the-difference-between-bot-api-servers) section to learn more about it. Alternatively, you can set `targetUploadSizeInMB` comfortably below the official server's limit (around 50 MB), so that each video is split into many smaller parts, each one posted separately.
 
 - Uploads are always made in the `.mp4` format, but the tool also accepts `.mkv`, `.avi`, `.wmv`, `.webm`, `.mov`, `.mpg`, `.mpeg`, `.flv`, `.ogv`, `.3gp`, `.vob` and `.mxf` files: when it finds any of them in the videos directory, the upload action asks whether to convert them to `.mp4` before continuing (the default answer is yes), and the converted files are uploaded in the same run. Answering "no" leaves those files out. _Cover images_, however, are still only handled in the `.jpg` and `.jpeg` formats — convert them beforehand.
 
