@@ -208,7 +208,7 @@ export class VideosService {
     const { name: videoFileNameWithoutExtension, ext: videoFileExtension } =
       path.parse(videoFilePath)
 
-    const maxSizePerFileInBytes = 1.5 * 1024 * 1024 * 1024 // 1.5 * 1GB in MB * 1 MB in KB * 1 KB in B
+    const maxSizePerFileInBytes = 1.75 * 1024 * 1024 * 1024 // 1.75 * 1GB in MB * 1 MB in KB * 1 KB in B
 
     const numberOfFiles = Math.ceil(sizeInBytes / maxSizePerFileInBytes)
 

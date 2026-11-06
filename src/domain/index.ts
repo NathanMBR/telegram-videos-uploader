@@ -1,4 +1,5 @@
 export * from './Preset'
+export * from './Settings'
 export * from './Usecase'
 export * from './VideoAvailabilities'
 export * from './VideoFileMetadata'

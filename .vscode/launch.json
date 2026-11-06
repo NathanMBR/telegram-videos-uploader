@@ -9,7 +9,7 @@
       "runtimeArgs": ["--import", "tsx"],
       "program": "${workspaceFolder}/src/index.ts",
       "envFile": "${workspaceFolder}/.env",
-      "args": ["-p", "${workspaceFolder}/presets.json"],
+      "args": ["-s", "${workspaceFolder}/presets.json"],
       "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
       "console": "integratedTerminal",
       "sourceMaps": true,

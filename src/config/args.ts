@@ -3,10 +3,10 @@ import utils from 'node:util'
 
 export const { values: args } = utils.parseArgs({
   options: {
-    presetsPath: {
+    settingsPath: {
       type: 'string',
-      short: 'p',
-      default: path.join(process.cwd(), 'presets.json')
+      short: 's',
+      default: path.join(process.cwd(), 'settings.json')
     },
     dryRun: {
       type: 'boolean',

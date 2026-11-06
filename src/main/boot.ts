@@ -1,6 +1,6 @@
 import { args } from '@/config'
 import { DrizzleConnection } from '@/db'
-import { ClackCLIService, PresetService } from '@/services'
+import { ClackCLIService, SettingsService } from '@/services'
 import {
   DeleteVideoUsecase,
   EditVideoUsecase,
@@ -12,16 +12,18 @@ import {
 } from '@/usecases'
 
 export const boot = async () => {
+  const { settingsPath } = args
+
   const cliService = new ClackCLIService()
-  const presetsService = new PresetService()
+  const settingsService = new SettingsService()
 
   if (process.argv.length === 0) throw new Error()
 
-  const presets = await presetsService.getAllPresets(args.presetsPath)
+  const settings = await settingsService.load({ settingsPath })
 
   const chosenPreset = await cliService.select({
     message: 'Select the preset you want:',
-    options: presets.map(preset => ({ label: preset.name, value: preset }))
+    options: settings.presets.map(preset => ({ label: preset.name, value: preset }))
   })
 
   DrizzleConnection.databaseUrl = chosenPreset.databaseUrl
