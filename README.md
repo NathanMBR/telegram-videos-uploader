@@ -13,13 +13,18 @@ Telegram videos uploader made with Node.js and TypeScript.
 - [About the project](#about-the-project)
 - [Setup and Installation -> Minimum requirements](#minimum-requirements)
 - [Setup and Installation -> Installation](#installation)
+- [Setup and Installation -> Installation -> Linux](#installing-on-linux)
+- [Setup and Installation -> Installation -> Windows 10/11](#installing-on-windows-1011)
 - [Setup and Installation -> Understanding the difference between `Bot API` servers](#understanding-the-difference-between-bot-api-servers)
 - [Setup and Installation -> Environment variables](#environment-variables)
 - [Setup and Installation -> Creating the `settings.json` file](#creating-the-settingsjson-file)
 - [Setup and Installation -> Spinning up the local `Bot API` server](#spinning-up-the-local-bot-api-server)
+- [Setup and Installation -> Spinning up the local `Bot API` server -> Linux](#local-server-on-linux)
+- [Setup and Installation -> Spinning up the local `Bot API` server -> Windows 10/11](#local-server-on-windows-1011)
 - [Usage -> Running the project](#running-the-project)
 - [Usage -> How it works](#how-it-works)
 - [Usage -> About the `videos.json` file](#about-the-videosjson-file)
+- [Usage -> About the `videos.json` file -> Running the script on Windows 10/11](#running-the-script-on-windows-1011)
 - [Usage -> Limitations](#limitations)
 - [Contributing](#contributing)
 - [License](#license)
@@ -33,16 +38,80 @@ This project is capable of uploading videos to Telegram through the `Bot API`, u
 - pnpm 9 or higher
 - ffmpeg CLI
 - ffprobe CLI
-- bash and jq CLIs (only required to use the `videos.json` conversion script; see [this section](#about-the-videosjson-file))
+- bash and jq CLIs (only required to use the `videos.json` conversion script; see [this section](#about-the-videosjson-file); on Windows 10/11, use the Git Bash that comes with Git)
 - A Telegram bot token + the ID of the channel where the videos will be posted (the bot must have permission to send messages)
 - A `settings.json` configuration file (see [this section](#creating-the-settingsjson-file))
+- (Windows 10/11 only) Developer Mode enabled (see [this section](#installing-on-windows-1011))
 
 ### Installation
-```bash
-git clone https://github.com/NathanMBR/telegram-videos-uploader.git
-cd telegram-videos-uploader
-pnpm install
-```
+The steps differ by operating system. Follow the ones for yours: [Linux](#installing-on-linux) or [Windows 10/11](#installing-on-windows-1011).
+
+#### Installing on Linux
+1. Install Git, ffmpeg (ffprobe comes with it) and, optionally, jq, using your distribution's package manager. On Debian/Ubuntu, for example:
+    ```bash
+    sudo apt update
+    sudo apt install git ffmpeg jq
+    ```
+
+2. Install Node.js 24 or higher. The version available in your distribution's repositories may be older, so check it with `node --version` and, if needed, install a newer one following [the official instructions](https://nodejs.org/en/download).
+
+3. Install pnpm (see [its installation guide](https://pnpm.io/installation) for other options):
+    ```bash
+    npm install -g pnpm
+    ```
+
+4. Clone the repository and install its dependencies:
+    ```bash
+    git clone https://github.com/NathanMBR/telegram-videos-uploader.git
+    cd telegram-videos-uploader
+    pnpm install
+    ```
+
+#### Installing on Windows 10/11
+Run the commands below in **PowerShell**. On Windows 11, right-click the Start button and choose **Terminal**; on Windows 10, search for **PowerShell** in the Start menu.
+
+1. Allow PowerShell to run the `npm` and `pnpm` commands. By default, Windows blocks them with the error `running scripts is disabled on this system`. Answer `Y` if asked to confirm:
+    ```powershell
+    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+    ```
+
+2. Enable **Developer Mode**:
+    - Windows 11: **Settings → System → For developers** (on the most recent versions, this page may be called **Advanced**);
+    - Windows 10: **Settings → Update & Security → For developers**;
+    - On both, you can also search for "developer settings" in the Start menu.
+
+    When a video is small enough to be uploaded in a single part, the tool places a symbolic link to it in the segments folder, and Windows only lets regular users create symbolic links when Developer Mode is on. Without it, uploading those videos fails with the error `EPERM: operation not permitted, symlink`. Alternatively, you can run the terminal as administrator every time you use the tool.
+
+3. Install Git, Node.js and ffmpeg (ffprobe comes with it) with `winget`. If it asks you to accept the source terms, answer `Y`:
+    ```powershell
+    winget install --id Git.Git -e
+    winget install --id OpenJS.NodeJS.LTS -e
+    winget install --id Gyan.FFmpeg -e
+    ```
+
+    > **Note:** `winget` comes with Windows 11. On Windows 10, if the `winget` command is not recognized, install or update the **App Installer** app from the Microsoft Store.
+
+4. Close the terminal and open a new one, so the newly installed programs can be found, and check them (Node.js must be version 24 or higher):
+    ```powershell
+    git --version
+    node --version
+    ffmpeg -version
+    ffprobe -version
+    ```
+
+5. Install pnpm:
+    ```powershell
+    npm install -g pnpm
+    ```
+
+6. Clone the repository and install its dependencies:
+    ```powershell
+    git clone https://github.com/NathanMBR/telegram-videos-uploader.git
+    cd telegram-videos-uploader
+    pnpm install
+    ```
+
+> **Note:** The scripts in the `scripts` directory are bash scripts. On Windows 10/11, run them in **Git Bash**, which is installed along with Git (search for it in the Start menu).
 
 ### Understanding the difference between `Bot API` servers
 Telegram provides two ways of using the `Bot API`:
@@ -55,10 +124,16 @@ The official server does not require certain configurations that would be necess
 You can read more about the benefits of a self-hosted API server [by clicking this link](https://core.telegram.org/bots/api#using-a-local-bot-api-server), and understand how to register the application and obtain the necessary information [by clicking this other link](https://core.telegram.org/api/obtaining_api_id).
 
 ### Environment variables
-You can copy the `.env.example` example file and replace its values with the ones you have:
+The `.env` file **must exist** for the tool to start, even if you won't use the local `Bot API` server: `pnpm start` and `pnpm dev` read it on startup and stop with the error `node: .env: not found` when it is missing. Create it by copying the `.env.example` example file, and replace its values with the ones you have:
 
 ```bash
+# Linux
 cp .env.example .env
+```
+
+```powershell
+# Windows 10/11 (PowerShell)
+Copy-Item .env.example .env
 ```
 
 Table with the available environment variables:
@@ -70,12 +145,18 @@ Table with the available environment variables:
 
 > **\*Note:** Required if you are going to use the local `Bot API` server through Docker Compose.
 
-> **Note:** The database location is **not** an environment variable: it is defined per preset through the `databaseUrl` property inside the `settings.json` file (see [this section](#creating-the-settingsjson-file)). If you do not intend to use the local `Bot API` server, the `.env` file is not needed at all.
+> **Note:** The database location is **not** an environment variable: it is defined per preset through the `databaseUrl` property inside the `settings.json` file (see [this section](#creating-the-settingsjson-file)). If you do not intend to use the local `Bot API` server, you can leave the copied example values as they are — just don't delete the file.
 
 ### Creating the `settings.json` file
 You can also copy the [`settings.example.json`](./settings.example.json) example file and replace its values with the ones you have:
 ```bash
+# Linux
 cp settings.example.json settings.json
+```
+
+```powershell
+# Windows 10/11 (PowerShell)
+Copy-Item settings.example.json settings.json
 ```
 
 Example with comments:
@@ -148,16 +229,37 @@ The `settings.json` file is loaded automatically if it is in the project's root 
 
 > **WARNING:** The `settings.json` must be saved without any comments.
 
+> **Note (Windows 10/11):** In JSON, the backslash (`\`) is a special character, so write Windows paths — such as the one in `videosDirectory` — with forward slashes (`"C:/Users/YourName/Videos"`) or with doubled backslashes (`"C:\\Users\\YourName\\Videos"`). A path with single backslashes makes the file invalid.
+
 > **Note:** If you already have a `presets.json` file from a previous version, rename it to `settings.json` and move its array into the `presets` property: `{ "presets": [ ... ] }`. The `--presetsPath` (`-p`) flag has also been replaced by `--settingsPath` (`-s`).
 
 ### Spinning up the local `Bot API` server
-After confirming that the environment variables are correctly set, just run the command below:
+After confirming that the environment variables are correctly set, start the server following the steps for your operating system below. Once it is running, set the `telegram.apiBaseUrl` property of your preset to `http://localhost:8081`.
+
+#### Local server on Linux
+You need Docker Engine with the Docker Compose plugin (see [Docker's installation guide](https://docs.docker.com/engine/install/)). From the project folder, run:
 ```bash
 sudo docker compose up -d
 ```
 
+#### Local server on Windows 10/11
+1. Install Docker Desktop and restart the computer:
+    ```powershell
+    winget install --id Docker.DockerDesktop -e
+    ```
+
+2. Open Docker Desktop, accept its terms and wait until it reports that the engine is running. If it asks to install or update WSL, accept it.
+
+3. From the project folder, in PowerShell, run:
+    ```powershell
+    docker compose up -d
+    ```
+
+Docker Desktop must be open whenever you want to use the local server.
+
 ## Usage
 ### Running the project
+The commands are the same on Linux and on Windows 10/11 (in PowerShell). Run them from the project folder:
 ```bash
 # Default usage: build + start
 pnpm build
@@ -246,12 +348,26 @@ If you wish, it is also possible to write the `videos.json` file manually, altho
 
 > **Note:** the `videos.json` file is not required for the upload to work, but only the minimum necessary information will be provided. Most of the post description's _placeholders_ will be empty.
 
+#### Running the script on Windows 10/11
+Run both the `yt-dlp` command and the conversion script in **Git Bash**, not in PowerShell — PowerShell may save `ytdlp.json` in a text encoding the script can't read. You can install yt-dlp and jq with the commands below (reopen Git Bash afterwards):
+```powershell
+winget install --id yt-dlp.yt-dlp -e
+winget install --id jqlang.jq -e
+```
+
+In Git Bash, Windows paths are written as `/c/Users/YourName/...` instead of `C:\Users\YourName\...`. For example:
+```bash
+cd /c/Users/YourName/Videos/ToUpload
+yt-dlp -J https://youtube.com/channel-link > ytdlp.json
+/c/Users/YourName/telegram-videos-uploader/scripts/convertYtdlpJsonToVideosJson.sh -r ytdlp.json
+```
+
 ### Limitations
 - If your videos are too large, it won't be possible to use Telegram's default API, and you'll need to spin up your own server for the upload. Check the ["Understanding the difference between `Bot API` servers"](#understanding-the-difference-between-bot-api-servers) section to learn more about it. Alternatively, you can set `targetUploadSizeInMB` comfortably below the official server's limit (around 50 MB), so that each video is split into many smaller parts, each one posted separately.
 
 - Uploads are always made in the `.mp4` format, but the tool also accepts `.mkv`, `.avi`, `.wmv`, `.webm`, `.mov`, `.mpg`, `.mpeg`, `.flv`, `.ogv`, `.3gp`, `.vob` and `.mxf` files: when it finds any of them in the videos directory, the upload action asks whether to convert them to `.mp4` before continuing (the default answer is yes), and the converted files are uploaded in the same run. Answering "no" leaves those files out. _Cover images_, however, are still only handled in the `.jpg` and `.jpeg` formats — convert them beforehand.
 
-> **Note:** the built-in conversion re-encodes with `ffmpeg` on the CPU (H.264 video, AAC audio), which can be slow for long or numerous videos. To convert beforehand instead — especially with GPU acceleration — use [the `convertWebmAndMkvToMp4Cpu.sh` script](./scripts/convertWebmAndMkvToMp4Cpu.sh) or, if you have an **NVIDIA** graphics card with **CUDA** support, [the `convertWebmAndMkvToMp4Nvidia.sh` script](./scripts/convertWebmAndMkvToMp4Nvidia.sh), both located in the `scripts` directory; just run either one inside the location where your videos are saved.
+> **Note:** the built-in conversion re-encodes with `ffmpeg` on the CPU (H.264 video, AAC audio), which can be slow for long or numerous videos. To convert beforehand instead — especially with GPU acceleration — use [the `convertWebmAndMkvToMp4Cpu.sh` script](./scripts/convertWebmAndMkvToMp4Cpu.sh) or, if you have an **NVIDIA** graphics card with **CUDA** support, [the `convertWebmAndMkvToMp4Nvidia.sh` script](./scripts/convertWebmAndMkvToMp4Nvidia.sh), both located in the `scripts` directory; just run either one inside the location where your videos are saved (on Windows 10/11, in Git Bash).
 
 ## Contributing
 You can suggest changes to the project by opening an issue [on the project's GitHub page](https://github.com/NathanMBR/telegram-videos-uploader). Pull requests are welcome.
