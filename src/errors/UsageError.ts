@@ -5,7 +5,8 @@ export class UsageError extends Error {
 
   constructor(
     public readonly message: string,
-    public readonly allowRetry = false
+    public readonly allowRetry = false,
+    public readonly retryAfter?: number
   ) {
     super(message)
   }

@@ -356,12 +356,17 @@ export class UploadVideosUsecase extends Usecase {
 
           const minutesToWait = 1
           const oneMinuteInSeconds = 60
-          const oneSecondsInMs = 1_000
-          const timeToWaitInMs = minutesToWait * oneMinuteInSeconds * oneSecondsInMs
+          const oneSecondsInMilliseconds = 1_000
+          const timeToWaitInSeconds = error.retryAfter
+            ? error.retryAfter + 1
+            : minutesToWait * oneMinuteInSeconds
+
+          const timeToWaitInMs = timeToWaitInSeconds * oneSecondsInMilliseconds
 
           uploadLoader.message(
-            `Upload limit reached! Waiting ${minutesToWait * oneMinuteInSeconds} seconds before retrying`
+            `Upload limit reached! Waiting ${timeToWaitInSeconds} seconds before retrying`
           )
+
           await timers.setTimeout(timeToWaitInMs)
           uploadLoader.message(loadingMessage)
 

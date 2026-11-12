@@ -151,7 +151,8 @@ export namespace TelegramService {
 }
 
 export class TelegramService {
-  private readonly TOO_MANY_REQUESTS_STATUS_CODE = 400
+  private readonly BAD_REQUEST_STATUS_CODE = 400
+  private readonly TOO_MANY_REQUESTS_STATUS_CODE = 429
   private readonly MAX_RETRIES = 5
 
   constructor(private readonly settings: TelegramService.Constructor.Settings) {}
@@ -495,13 +496,23 @@ export class TelegramService {
 
     const sendVideoResponse = (await sendVideoFetchResponse.json()) as TelegramAPI.SendVideoResponse
     if (!sendVideoResponse.ok) {
-      const allowRetry =
-        sendVideoFetchResponse.status === this.TOO_MANY_REQUESTS_STATUS_CODE &&
-        retriesCount <= this.MAX_RETRIES
+      const statusCode = sendVideoFetchResponse.status
+
+      const isAllowedToRetryStatusCode =
+        statusCode === this.BAD_REQUEST_STATUS_CODE ||
+        statusCode === this.TOO_MANY_REQUESTS_STATUS_CODE
+
+      const isRetryCountOverMaximumAllowed = retriesCount > this.MAX_RETRIES
+
+      const allowRetry = isAllowedToRetryStatusCode && !isRetryCountOverMaximumAllowed
 
       return {
         success: false,
-        error: new UsageError(sendVideoResponse.description, allowRetry)
+        error: new UsageError(
+          sendVideoResponse.description,
+          allowRetry,
+          sendVideoResponse.parameters?.retry_after
+        )
       }
     }
 

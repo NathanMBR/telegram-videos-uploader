@@ -11,6 +11,9 @@ export namespace TelegramAPI {
       ok: false
       error_code: number
       description: string
+      parameters?: {
+        retry_after?: number
+      }
     }
   }
 
